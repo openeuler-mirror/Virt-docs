@@ -1,0 +1,20 @@
+label: StratoVirt用户指南
+isManual: true
+description: StratoVirt是计算产业中面向云数据中心的企业级虚拟化平台，实现了一套架构支持虚拟机、容器、Serverless三种场景
+sections:
+  - label: StratoVirt介绍
+    href: ./stratovirt_introduction.md
+  - label: 安装StratoVirt
+    href: ./install_stratovirt.md
+  - label: 准备使用环境
+    href: ./prepare_env.md
+  - label: 虚拟机配置
+    href: ./vm_configuration.md
+  - label: 虚拟机管理
+    href: ./vm_management.md
+  - label: 对接iSula安全容器
+    href: ./interconnect_isula.md
+  - label: 对接libvirt
+    href: ./interconnect_libvirt.md
+  - label: StratoVirt VFIO 使用说明
+    href: ./stratovirt_vfio_instructions.md
