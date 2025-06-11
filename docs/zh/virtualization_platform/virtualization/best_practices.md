@@ -351,6 +351,130 @@ Guest-Idle-Haltpoll特性默认关闭，这里给出开启该特性的操作指�
 
     以上xml配置将直通的 Nvme 磁盘的中断信息处理指定在第2号 Bar 上，增加该项配置可以使 Guest OS 内的 Nvme 磁盘性能达到与 Host OS 上的 Nvme 磁盘性能几乎一致。
 
+### 硬件topo透传
+
+#### 概述
+
+CPU拓扑信息用于呈现CPU核在硬件上的层级结构（例如Sockets/Clusters/Cores/Threads）。CPU拓扑信息通过ACPI或DT方式呈现给内核。在虚拟化场景下，虚拟机的ACPI或者DT信息由虚拟化组件生成。虚拟化组件根据用户配置的CPU拓扑信息生成ACPI或者DT，并连同虚拟机内核一起加载到虚拟机内存地址空间，以支持虚拟机内部感知CPU拓扑信息以优化任务调度决策。
+
+#### 操作指导
+
+在虚拟机的xml中增加虚拟机cpu topo信息描述：
+
+```Conf
+<vcpu placement='static' current='4'>32</vcpu>
+    <cpu mode='host-passthrough' check='none'>
+    <topology sockets='1' clusters='4' cores='4' threads='2'/>
+</cpu>
+```
+
+上述xml`<vcpu>`标签中，32为虚拟机支持的最大CPU数量。topology标签中指定vCPU拓扑信息，`sockets * clusters * cores * threads`的值必须等于虚拟机支持的最大CPU数量。
+
+启动虚拟机后在虚拟机内部`/sys/devices/system/cpu`路径下可以查看虚拟机cpu topo信息。
+
+### vCpu绑核
+
+#### 概述
+
+VCPU只在绑定的物理CPU上调度，在特定场景下达到提升虚拟机性能的目的。如果未绑定，默认VCPU可在任何物理CPU上调用，会导致虚拟机间或同一虚机不同VCPU相互影响。众核场景，可通过VCPU与物理CPU1:1绑定，实现更优的VCPU性能。
+
+#### 操作指导
+
+```Conf
+<cputune>
+    <vcpupin vcpu='0' cpuset='20'/>
+    <vcpupin vcpu='1' cpuset='21'/>
+    ......
+</cputune>
+```
+
+上述xml示例中，`vcpu`表示VCPU编号，`cpuset`表示要绑定的物理CPU编号。
+
+在主机上可以使用`virsh vpuinfo vmname`查看vcpu和物理cpu对应关系。
+
+### numa亲和
+
+#### 概述
+
+为提升虚拟机性能，当虚拟机启动前，用户可以通过虚拟机配置文件为虚拟机内存指定NUMA NODE，从而避免远端内存访问。并且可以通过给虚拟机模拟NUMA，实现将多个NUMA呈现给虚拟机，实现虚拟机内部感知NUMA差异，而避免跨NUMA访问。
+
+#### 操作指导
+
+```Conf
+<cputune>
+    <vcpupin vcpu='0' cpuset='0'/>
+    <vcpupin vcpu='1' cpuset='1'/>
+    <vcpupin vcpu='2' cpuset='2'/>
+    <vcpupin vcpu='3' cpuset='3'/>
+</cputune>
+<numatune>
+    <memnode cellid="0" mode="strict" nodeset="0"/>
+    <memnode cellid="1" mode="strict" nodeset="1"/>
+</numatune>
+```
+
+`<numatune>`中的cellid表示虚拟机numa编号，mode可以配置为"strict"（严格从指定node上申请内存，内存不够则失败）、"preferred"（优先从某一node上申请内存，如果不够则从其他node上申请）、"interleave"（从指定的node上交叉申请内存）；"nodeset"表示指定物理NUMA node。`<cputune>`中需要将同一cellid中VCPU绑定到与memnode相同的物理NUMA node上。
+
+### WFI-no-trap
+
+#### 概述
+
+基于GICv4.1 vSGI中断透传特性，在内核KVM中配置为执行WFI指令不trap时，VCPU线程idle执行WFI指令时不再trap至KVM，从而降低由VCPU陷入陷出带来的虚拟化开销，对于虚拟机内时延有较大收益。
+
+#### 操作指导
+
+在cmdline中配置中断直通参数：
+
+```Shell
+kvm-arm.vgic_v4_enable=1
+```
+
+关闭内核kvm WFI陷出开关：
+
+```Shell
+echo N > /sys/module/kvm/parameters/force_wfi_trap
+```
+
+创建虚拟机后使用vmtop查看对应虚拟机的WFI陷出是否有数据。
+
+### 网卡直通
+
+#### 概述
+
+网卡直通是PCI设备直通技术的一种应用，PCI设备直通技术是一种基于硬件的虚拟化解决方案，通过该技术，虚拟机可以直接连接到物理直通设备上，从而降低设备的虚拟化损耗。
+
+#### 操作指导
+
+通过如下步骤可以在虚拟机中使用PCI直通设备(以Huawei Hi1822网卡为例)。
+
+1. 获取设备的PCI BDF信息
+   在host上可以通过“lspci | grep Eth”命令，获取当前单板上网卡资源列表。例如：03:00.0即网卡的PCI BDF号，对应Huawei Hi1822 4*25GE网卡的其中一个端口。
+
+   ```Shell
+    03:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    04:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    05:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    06:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    ```
+
+2. 挂载PCI直通网卡至虚拟机中
+   创建虚拟机时，在虚拟机配置文件中增加PCI网卡直通的配置项：
+
+   ```Conf
+    <devices>
+    ...
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+    <driver name='vfio'/>
+    <source>
+        <address domain='0x0000' bus='0x03' slot='0x10' function='0x00'/>
+    </source>
+    <rom bar='on'/>
+    <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </hostdev>
+    ...
+    </devices>
+    ```
+
 ## 安全最佳实践
 
 ### Libvirt鉴权
@@ -683,3 +807,20 @@ sha256 :
   22 : ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   23 : 0000000000000000000000000000000000000000000000000000000000000000
 ```
+
+## 业务应用最佳实践
+
+### 众核高密
+
+#### 概述
+
+随着单服务器核数的增加，根据通用扩展性定律（USL），由于系统中不可避免存在串行开销和同步开销，导致系统性能无法线性增加，成为业界核心痛点问题。众核实际业务容器环境，影响容器部署扩展性的串行访问开销和同步开销主要来自软硬共享资源争用：
+
+1. 软件共享资源：共享管理数据结构（inode，syslog，锁等）的争用。
+2. 硬件共享资源：内存/Cache/总线/硬件设备等硬件共享资源争用。
+
+通过虚拟化技术进行资源隔离，是解决众核服务器软硬件干扰的一种有效手段。但是引入虚拟化会带来虚拟化损耗，因此需要通过轻量虚拟化技术来降低虚拟化损耗对容器业务的影响。
+
+#### 轻量虚拟化实践
+
+在众核高密场景，通过硬件topo透传、中断直通、Numa亲和、vCpu绑核、SRIOV直通、内存大页等Kunpeng-V关键技术实现轻量低开销的虚拟化隔离方案，从而实现redis容器部署密度提升50%。以上关键技术的操作实践可参考[性能最佳实践](#性能最佳实践)。
