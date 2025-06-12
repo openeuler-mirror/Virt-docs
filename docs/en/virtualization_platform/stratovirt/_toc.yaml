@@ -1,0 +1,20 @@
+label: StratoVirt User Guide
+isManual: true
+description: StratoVirt serves as an enterprise-level virtualization platform tailored for cloud data centers in the computing sector. It enables a unified architecture to accommodate VMs, containers, and serverless environments.
+sections:
+  - label: StratoVirt Introduction
+    href: ./stratovirt_introduction.md
+  - label: StratoVirt Installation
+    href: ./install_stratovirt.md
+  - label: Environment Preparation
+    href: ./prepare_env.md
+  - label: VM Configuration
+    href: ./vm_configuration.md
+  - label: VM Management
+    href: ./vm_management.md
+  - label: Interconnection with the iSula Secure Container
+    href: ./interconnect_isula.md
+  - label: Interconnection with libvirt
+    href: ./interconnect_libvirt.md
+  - label: StratoVirt VFIO User Guide
+    href: ./stratovirt_vfio_instructions.md
