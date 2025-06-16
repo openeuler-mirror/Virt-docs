@@ -1,0 +1,37 @@
+label: Virtualization User Guide
+isManual: true
+description: Virtualization technologies for creating and managing VMs on openEuler.
+sections:
+  - label: Introduction to Virtualization
+    href: ./introduction_to_virtualization.md
+  - label: Installing Virtualization Components
+    href: ./virtualization_installation.md
+  - label: Environment Preparation
+    href: ./environment_preparation.md
+  - label: VM Configuration
+    href: ./vm_configuration.md
+  - label: Managing VMs
+    href: ./managing_vms.md
+  - label: VM Live Migration
+    href: ./vm_live_migration.md
+  - label: System Resource Management
+    href: ./system_resource_management.md
+  - label: Managing Devices
+    href: ./managing_devices.md
+  - label: VM Maintainability Management
+    href: ./vm_maintainability_management.md
+  - label: Best Practices
+    href: ./best_practices.md
+  - label: Tool Guide
+    href: ./tool_guide.md
+    sections:
+      - label: vmtop
+        href: ./vmtop.md
+      - label: LibcarePlus
+        href: ./libcareplus.md
+  - label: Skylark VM Hybrid Deployment
+    href: ./skylark.md
+  - label: Appendix
+    href: ./appendix.md
+  - label: Common Issues and Solutions
+    href: ./faqs_and_solutions.md
