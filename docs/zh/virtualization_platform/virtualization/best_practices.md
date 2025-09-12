@@ -201,6 +201,60 @@ kworker是Linux内核实现的per-CPU线程，用来执行系统中的workqueue�
     # echo never > /sys/kernel/mm/transparent_hugepage/enabled
     ```
 
+### 内存带宽监控
+
+#### 概述
+
+不同租户的虚拟机运行在同一主机上时，当大规格的内存密集型虚拟机占用较多内存带宽时，会导致其他虚拟机的内存带宽无法满足业务。利用鲲鹏920B的MPAM和系统提供的resctrl功能，可实现对一定数量（最多支持30）的虚拟机的内存带宽占用进行检测和控制的能力。
+
+为了使能本功能，需要在主机的grub.cfg文件中添加启动参数：mpam=acpi
+
+#### 操作指导
+
+- 内存带宽控制
+
+    配置L3PRI
+
+    ```Conf
+      <cputune>
+        ...
+        <cachetune vcpus='0-3'>
+          <cache id='0' level='3' type='priority' size='1'/>
+        </cachetune>
+        ...
+      </cputune>
+    ```
+
+    - 上述xml为L3 Cache优先级配置。设置越大，优先级越高，反之，数字越小，优先级越低。L3PRI默认值为0，合法值范围[0,3]
+
+    配置带宽限制
+
+    ```Conf
+      <cputune>
+        ...
+        <memorytune>
+          <node id='0' bandwidth='100' min_bandwidth='50' hardlimit='1' priority='3'/>
+        </memorytune>
+        ...
+      </cputune>
+    ```
+
+    - bandwidth：内存带宽上限，取值范围[0-100]
+    - min_bandwidth: 内存带宽限低，当共享资源实际占比低于设置值，会自动提高对该资源使用优先级，取值范围[0-100]
+    - hardlimit: 取值范围0或1，当MBHDL=1时，限制MB共享资源使用量不能超出MB设置值即bandwidth，若MBHDL=0，则允许空闲情况下，MB共享资源使用量超过MB设置值
+    - priority: 设置越大，优先级越高，反之，数字越小，优先级越低。MBPRI默认值为3，合法值范围[0,7]
+    - 上述四个字段均可单独配置
+
+    虚拟机配置以上xml后，resctrl目录下会创建对应虚拟机的控制组，控制组中的schemata记录了相应配置
+
+- 内存带宽监控
+
+    内存带宽监控依赖MPAM特性，配置上述xml后，可使用以下命令监控虚拟机内存带宽
+
+    ```Shell
+    # vmtop -G
+    ```
+
 ### PV-qspinlock
 
 #### 概述
