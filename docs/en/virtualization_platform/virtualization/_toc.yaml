@@ -31,7 +31,5 @@ sections:
         href: ./libcareplus.md
   - label: Skylark VM Hybrid Deployment
     href: ./skylark.md
-  - label: Common Issues and Solutions
-    href: ./faq.md
   - label: Appendix
     href: ./appendix.md
