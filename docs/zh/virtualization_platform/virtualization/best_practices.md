@@ -529,6 +529,37 @@ echo N > /sys/module/kvm/parameters/force_wfi_trap
     </devices>
     ```
 
+### 直通设备NUMA呈现
+
+#### 概述
+
+在虚拟机内可以通过sysfs接口查看直通设备所在的NUMA，便于用户根据设备所在NUMA部署业务应用，减少跨NUMA资源访问导致的性能损耗，提高虚拟机内业务应用性能。
+
+#### 操作指导
+
+- 直通设备NUMA信息XML配置
+
+   ```Conf
+    <devices>
+    ...
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+    <driver name='vfio'/>
+    <source>
+        <address domain='0x0000' bus='0x03' slot='0x10' function='0x00'/>
+    </source>
+    <numa node='0'>
+    <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </hostdev>
+    ...
+    </devices>
+    ```
+
+- 虚拟机内查看直通设备的NUMA
+
+    ```Shell
+    # cat /sys/bus/pci/devices/bdf/numa_node
+    ```
+
 ## 安全最佳实践
 
 ### Libvirt鉴权
@@ -877,4 +908,4 @@ sha256 :
 
 #### 轻量虚拟化实践
 
-在众核高密场景，通过硬件topo透传、中断直通、Numa亲和、vCpu绑核、SRIOV直通、内存大页等Kunpeng-V关键技术实现轻量低开销的虚拟化隔离方案，从而实现redis容器部署密度提升50%。以上关键技术的操作实践可参考[性能最佳实践](#性能最佳实践)。
+在众核高密场景，通过硬件topo透传、中断直通、Numa亲和、vCpu绑核、SRIOV直通、直通设备NUMA呈现、内存大页、内存带宽监控等Kunpeng-V关键技术实现轻量低开销的虚拟化隔离方案，通过提高虚拟机之间隔离性，从而实现redis容器部署密度提升100%。以上关键技术的操作实践可参考[性能最佳实践](#性能最佳实践)。
