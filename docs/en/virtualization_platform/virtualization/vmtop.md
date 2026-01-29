@@ -1,21 +1,19 @@
-# Tool Guide
+# vmtop
 
-## vmtop
-
-### Overview
+## Overview
 
 vmtop is a user-mode tool running on the host machine. You can use the vmtop tool to dynamically view the usage of VM resources in real time, such as CPU usage, memory usage, and the number of vCPU traps. Therefore, the vmtop tool can be used to locate virtualization problems and optimize performance.
 
-#### Multi-Architecture Support
+### Multi-Architecture Support
 
 Currently, vmtop supports the AArch64 and x86_64 processor architectures.
 
-#### Display Item Description
+### Display Item Description
 
 vmtop display items vary according to the processor architecture. This document describes the meaning of each display item and whether it is displayed in the corresponding architecture.
 Note: The following sampling difference refers to the difference between two times of data obtained in a specified interval.
 
-##### **Display Items of the AArch64 and x86_64 Architectures**
+#### **Display Items of the AArch64 and x86_64 Architectures**
 
 - VM/task-name: VM/Process name
 - DID: VM ID
@@ -28,7 +26,7 @@ Note: The following sampling difference refers to the difference between two tim
 - %GUE: Ratio of the VM internal occupation time to the CPU running time
 - %HYP: Virtualization overhead ratio
 
-##### Display Items Only for the Aarch64 Architecture
+#### Display Items Only for the Aarch64 Architecture
 
 - EXThvc: Number of hvc-exits (sampling difference)
 - EXTwfe: Number of wfe-exits (sampling difference)
@@ -40,7 +38,7 @@ Note: The following sampling difference refers to the difference between two tim
 - EXTsys64: Number of sys64 exits (sampling difference)
 - EXTmabt: Number of mem abort exits (sampling difference)
 
-##### Display Items Only for the x86_64 Architecture
+#### Display Items Only for the x86_64 Architecture
 
 - PFfix: Number of page faults (sampling difference)
 - PFgu: Number of times that page faults are injected to the guest OS (sampling difference)
@@ -65,18 +63,18 @@ Note: The following sampling difference refers to the difference between two tim
 - EXTeptm: Number of Ept error exits (sampling difference)
 - EXTpau: Number of times that the VCPU pauses and exits (sampling difference)
 
-### Usage
+## Usage
 
 vmtop is a command line tool. You can directly run the vmtop in command line mode.
 In addition, the vmtop tool provides different options for querying different information.
 
-#### Syntax
+### Syntax
 
 ```sh
 vmtop [option]
 ```
 
-#### Option Description
+### Option Description
 
 - `-d`: sets the refresh interval, in seconds.
 - `-H`: displays the VM thread information.
@@ -86,7 +84,7 @@ vmtop [option]
 - `-v`: displays versions.
 - `-p`: monitors the VM with a specified ID.
 
-#### Keyboard Shortcut
+### Keyboard Shortcut
 
 Shortcut key used when the vmtop is running.
 
@@ -96,7 +94,7 @@ Shortcut key used when the vmtop is running.
 - **f**: enters the editing mode of a monitoring item and selects the monitoring item to be enabled.
 - **q**: exits the vmtop process.
 
-### Example
+## Example
 
 Run the vmtop command on the host.
 

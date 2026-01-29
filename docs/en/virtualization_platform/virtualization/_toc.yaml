@@ -23,7 +23,6 @@ sections:
   - label: Best Practices
     href: ./best_practices.md
   - label: Tool Guide
-    href: ./tool_guide.md
     sections:
       - label: vmtop
         href: ./vmtop.md
