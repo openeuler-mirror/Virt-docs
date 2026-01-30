@@ -23,7 +23,6 @@ sections:
   - label: 最佳实践
     href: ./best_practices.md
   - label: 工具使用指南
-    href: ./tool_guide.md
     sections:
       - label: vmtop
         href: ./vmtop.md
