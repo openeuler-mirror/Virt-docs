@@ -2,22 +2,22 @@
 
 ## Performance Best Practices
 
-### Halt-Polling
+### halt-polling
 
 #### Overview
 
 If compute resources are sufficient, the halt-polling feature can be used to enable VMs to obtain performance similar to that of physical machines. If the halt-polling feature is not enabled, the host allocates CPU resources to other processes when the vCPU exits due to idle timeout. When the halt-polling feature is enabled on the host, the vCPU of the VM performs polling when it is idle. The polling duration depends on the actual configuration. If the vCPU is woken up during the polling, the vCPU can continue to run without being scheduled from the host. This reduces the scheduling overhead and improves the VM system performance.
 
-> [!NOTE]NOTE   
-> The halt-polling mechanism ensures that the vCPU thread of the VM responds in a timely manner. However, when the VM has no load, the host also performs polling. As a result, the host detects that the CPU usage of the vCPU is high, but the actual CPU usage of the VM is not high.  
+>![NOTE](./public_sys_resources/icon_note.gif)
+> The halt-polling mechanism ensures that the vCPU thread of the VM responds in a timely manner. However, when the VM has no load, the host also performs polling. As a result, the host detects that the CPU usage of the vCPU is high, but the actual CPU usage of the VM is not high. 
 
-#### Instructions
+#### Operation Guide
 
-The halt-polling feature is enabled by default. You can dynamically change the halt-polling time of vCPU by modifying the  **halt\_poll\_ns**  file. The default value is  **500000**, in ns.
+The halt-polling feature is enabled by default, and the default polling time is 500000 ns. You can dynamically change the halt-polling time of vCPU by modifying the `halt\_poll\_ns` file.
 
-For example, to set the polling duration to 400,000 ns, run the following command:
+For example, to set the polling time to 400000, run the following command as the `root` user:
 
-```shell
+```Shell
 # echo 400000 > /sys/module/kvm/parameters/halt_poll_ns
 ```
 
@@ -25,20 +25,20 @@ For example, to set the polling duration to 400,000 ns, run the following comman
 
 #### Overview
 
-By default, QEMU main threads handle backend VM read and write operations on the KVM. This causes the following issues:
+On the KVM platform, QEMU main threads process read and write operations on virtual disks at the backend by default. This causes the following issues:
 
 - VM I/O requests are processed by a QEMU main thread. Therefore, the single-thread CPU usage becomes the bottleneck of VM I/O performance.
-- The QEMU global lock \(qemu\_global\_mutex\) is used when VM I/O requests are processed by the QEMU main thread. If the I/O processing takes a long time, the QEMU main thread will occupy the global lock for a long time. As a result, the VM vCPU cannot be scheduled properly, affecting the overall VM performance and user experience.
+- The QEMU global lock \(`qemu\_global\_mutex\`) is used when VM I/O requests are processed by the QEMU main thread. If the I/O processing takes a long time, the QEMU main thread will occupy the global lock for a long time. As a result, the VM vCPU cannot be scheduled properly, affecting the overall VM performance and user experience.
 
 You can configure the I/O thread attribute for the virtio-blk disk or virtio-scsi controller. At the QEMU backend, an I/O thread is used to process read and write requests of a virtual disk. The mapping relationship between the I/O thread and the virtio-blk disk or virtio-scsi controller can be a one-to-one relationship to minimize the impact on the QEMU main thread, enhance the overall I/O performance of the VM, and improve user experience.
 
-#### Instructions
+#### Configuration Description
 
 To use I/O threads to process VM disk read and write requests, you need to modify VM configurations as follows:
 
-- Configure the total number of high-performance virtual disks on the VM. For example, set  **<iothreads\>**  to  **4**  to control the total number of I/O threads.
+- Configure the total number of high-performance virtual disks on the VM. For example, set `<iothreads\>` to `4` to control the total number of I/O threads.
 
-    ```xml
+    ```Conf
     <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>   
          <name>VMName</name>
          <memory>4194304</memory>
@@ -47,9 +47,9 @@ To use I/O threads to process VM disk read and write requests, you need to modif
          <iothreads>4</iothreads>
     ```
 
-- Configure the I/O thread attribute for the virtio-blk disk.  **<iothread\>**  indicates I/O thread IDs. The IDs start from 1 and each ID must be unique. The maximum ID is the value of  **<iothreads\>**. For example, to allocate I/O thread 2 to the virtio-blk disk, set parameters as follows:
+- Configure the I/O thread attribute for the virtio-blk disk. `<iothread\>` indicates I/O thread IDs. The IDs start from 1 and each ID must be unique. The maximum ID is the value of `<iothreads\>`. For example, to allocate I/O thread 2 to the virtio-blk disk, set parameters as follows:
 
-    ```xml
+    ```Conf
     <disk type='file' device='disk'>
           <driver name='qemu' type='raw' cache='none' io='native' iothread='2'/>
           <source file='/path/test.raw'/>
@@ -60,7 +60,7 @@ To use I/O threads to process VM disk read and write requests, you need to modif
 
 - Configure the I/O thread attribute for the virtio-scsi controller. For example, to allocate I/O thread 2 to the virtio-scsi controller, set parameters as follows:
 
-    ```xml
+    ```Conf
     <controller type='scsi' index='0' model='virtio-scsi'>
           <driver iothread='2'/>
           <alias name='scsi0'/>
@@ -70,9 +70,9 @@ To use I/O threads to process VM disk read and write requests, you need to modif
 
 - Bind I/O threads to a physical CPU.
 
-    Binding I/O threads to specified physical CPUs does not affect the resource usage of vCPU threads.  **<iothread\>**  indicates I/O thread IDs, and  **<cpuset\>**  indicates IDs of the bound physical CPUs.
+    Binding I/O threads to specified physical CPUs does not affect the resource usage of vCPU threads. `<iothread\>` indicates I/O thread IDs, and `<cpuset\>` indicates IDs of the bound physical CPUs.
 
-    ```xml
+    ```Conf
     <cputune>
     <iothreadpin iothread='1' cpuset='1-3,5,7-12' />
     <iothreadpin iothread='2' cpuset='1-3,5,7-12' />
@@ -83,19 +83,19 @@ To use I/O threads to process VM disk read and write requests, you need to modif
 
 #### Overview
 
-When configuring VM storage devices, you can use configuration files to configure virtual disks for VMs, or connect block devices \(such as physical LUNs and LVs\) to VMs for use to improve storage performance. The latter configuration method is called raw device mapping \(RDM\). Through RDM, a virtual disk is presented as a small computer system interface \(SCSI\) device to the VM and supports most SCSI commands.
+When configuring VM storage devices, you can use configuration files to configure virtual disks for VMs, or connect block devices (such as physical LUNs and logical volumes) to VMs for use to improve storage performance. The latter configuration method is called raw device mapping (RDM). Through RDM, a virtual disk is presented as a small computer system interface (SCSI) device to the VM and supports most SCSI commands.
 
 RDM can be classified into virtual RDM and physical RDM based on backend implementation features. Compared with virtual RDM, physical RDM provides better performance and more SCSI commands. However, for physical RDM, the entire SCSI disk needs to be mounted to a VM for use. If partitions or logical volumes are used for configuration, the VM cannot identify the disk.
 
-#### Instructions
+#### Configuration Example
 
-VM configuration files need to be modified for RDM. The following is a configuration example.
+VM configuration files need to be modified for RDM. The following are configuration examples.
 
 - Virtual RDM
 
-    The following is an example of mounting the SCSI disk  **/dev/sdc**  on the host to the VM as a virtual raw device:
+    The following is an example of mounting the SCSI disk `/dev/sdc` on the host to the VM as a virtual raw device:
 
-    ```xml
+    ```Conf
     <domain type='kvm'>
      <devices>
         ...
@@ -113,9 +113,9 @@ VM configuration files need to be modified for RDM. The following is a configura
 
 - Physical RDM
 
-    The following is an example of mounting the SCSI disk  **/dev/sdc**  on the host to the VM as a physical raw device:
+    The following is an example of mounting the SCSI disk `/dev/sdc` on the host to the VM as a physical raw device:
 
-    ```xml
+    ```Conf
     <domain type='kvm'>
      <devices>
         ...
@@ -137,11 +137,11 @@ VM configuration files need to be modified for RDM. The following is a configura
 
 kworker is a per-CPU thread implemented by the Linux kernel. It is used to execute workqueue requests in the system. kworker threads will compete for physical core resources with vCPU threads, resulting in virtualization service performance jitter. To ensure that the VM can run stably and reduce the interference of kworker threads on the VM, you can bind kworker threads on the host to a specific CPU.
 
-#### Instructions
+#### Procedure
 
-You can modify the  **/sys/devices/virtual/workqueue/cpumask**  file to bind tasks in the workqueue to the CPU specified by  **cpumasks**. Masks in  **cpumask**  are in hexadecimal format. For example, if you need to bind kworker to CPU0 to CPU7, run the following command to change the mask to  **ff**:
+You can modify the `/sys/devices/virtual/workqueue/cpumask` file to bind tasks in the workqueue to the CPU specified by `cpumask`. Masks in `cpumask` are in hexadecimal format. For example, if you need to bind kworker to CPU0 to CPU7, run the following command as the `root` user to change the mask to `ff`:
 
-```shell
+```Shell
 # echo ff > /sys/devices/virtual/workqueue/cpumask
 ```
 
@@ -151,23 +151,23 @@ You can modify the  **/sys/devices/virtual/workqueue/cpumask**  file to bind tas
 
 Compared with traditional 4 KB memory paging, openEuler also supports 2 MB/1 GB memory paging. HugePage memory can effectively reduce TLB misses and significantly improve the performance of memory-intensive services. openEuler uses two technologies to implement HugePage memory.
 
-- Static HugePages
+- Static HugePage
 
     The static HugePage requires that a static HugePage pool be reserved before the host OS is loaded. When creating a VM, you can modify the XML configuration file to specify that the VM memory is allocated from the static HugePage pool. The static HugePage ensures that all memory of a VM exists on the host as the HugePage to ensure physical continuity. However, the deployment difficulty is increased. After the page size of the static HugePage pool is changed, the host needs to be restarted for the change to take effect. The size of a static HugePage can be 2 MB or 1 GB.
 
-- THP
+- Transparent HugePage
 
-    If the transparent HugePage \(THP\) mode is enabled, the VM automatically selects available 2 MB consecutive pages and automatically splits and combines HugePages when allocating memory. When no 2 MB consecutive pages are available, the VM selects available 64 KB \(AArch64 architecture\) or 4 KB \(x86\_64 architecture\) pages for allocation. By using THP, users do not need to be aware of it and 2 MB HugePages can be used to improve memory access performance.
+    If the transparent HugePage (THP) mode is enabled, the VM automatically selects available 2 MB consecutive pages and automatically splits and combines HugePages when allocating memory. When no 2 MB consecutive pages are available, the VM selects available 64 KB (AArch64 architecture) or 4 KB (x86_64 architecture) pages for allocation. By using THP, users do not need to be aware of it and 2 MB HugePages can be used to improve memory access performance.
 
 If VMs use static HugePages, you can disable THP to reduce the overhead of the host OS and ensure stable VM performance.
 
-#### Instructions
+#### Operation Guide
 
 - Configure static HugePages.
 
     Before creating a VM, modify the XML file to configure a static HugePage for the VM.
 
-    ```xml
+    ```Conf
       <memoryBacking>
         <hugepages>
           <page size='1' unit='GiB'/>
@@ -177,7 +177,7 @@ If VMs use static HugePages, you can disable THP to reduce the overhead of the h
 
     The preceding XML segment indicates that a 1 GB static HugePage is configured for the VM.
 
-    ```xml
+    ```Conf
       <memoryBacking>
         <hugepages>
           <page size='2' unit='MiB'/>
@@ -191,50 +191,104 @@ If VMs use static HugePages, you can disable THP to reduce the overhead of the h
 
     Dynamically enable the THP through sysfs.
 
-    ```shell
+    ```Shell
     # echo always > /sys/kernel/mm/transparent_hugepage/enabled
     ```
 
     Dynamically disable the THP.
 
-    ```shell
+    ```Shell
     # echo never > /sys/kernel/mm/transparent_hugepage/enabled
+    ```
+
+### Memory Bandwidth Monitoring
+
+#### Overview
+
+When VMs of different tenants run on the same host and large-specification memory-intensive VMs occupy a large amount of memory bandwidth, the memory bandwidth of other VMs cannot meet service requirements. The MPAM of Kunpeng 920B and the resctrl function provided by the system can be used to detect and control the memory bandwidth usage for a certain number of VMs (up to 30).
+
+To enable this function, add the boot parameter `mpam=acpi` to the `grub.cfg` file of the host.
+
+#### Operation Guide
+
+- Memory bandwidth control
+
+    Configure L3PRI.
+
+    ```Conf
+      <cputune>
+        ...
+        <cachetune vcpus='0-3'>
+          <cache id='0' level='3' type='priority' size='1'/>
+        </cachetune>
+        ...
+      </cputune>
+    ```
+
+    - The preceding XML file is used to configure the L3 cache priority. A larger value indicates a higher priority. The default value of L3PRI is 0. The valid value range is [0, 3].
+
+    Configure the bandwidth limit.
+
+    ```Conf
+      <cputune>
+        ...
+        <memorytune>
+          <node id='0' bandwidth='100' min_bandwidth='50' hardlimit='1' priority='3'/>
+        </memorytune>
+        ...
+      </cputune>
+    ```
+
+    - `bandwidth`: upper limit of the memory bandwidth. The value range is [0, 100].
+    - `min_bandwidth`: lower limit of the memory bandwidth. When the actual proportion of a shared resource is lower than the configured value, the priority of using the resource automatically increases. The value range is [0, 100].
+    - `hardlimit`: The value can be 0 or 1. When MBHDL is set to 1, the usage of MB shared resources cannot exceed the configured MB value, that is, `bandwidth`. When MBHDL is set to 0, the usage of MB shared resources is allowed to exceed the configured MB value in idle scenarios.
+    - `priority`: A larger value indicates a higher priority. The default value of MBPRI is 3. The valid value range is [0, 7].
+    - The preceding four fields can be configured separately.
+
+    After the preceding XML file is configured for a VM, a control group for the VM is created in the `resctrl` directory. The schemata in the control group records the corresponding configuration.
+
+- Memory bandwidth monitoring
+
+    Memory bandwidth monitoring depends on the MPAM feature. After the preceding XML file is configured, you can run the following command to monitor the VM memory bandwidth.
+
+    ```Shell
+    # vmtop -G
     ```
 
 ### PV-qspinlock
 
 #### Overview
 
-PV-qspinlock optimizes the spin lock in the virtual scenario of CPU overcommitment. It allows the hypervisor to set the vCPU in the lock context to the block state and wake up the corresponding vCPU after the lock is released. In this way, pCPU resources can be better used in the overcommitment scenario, and the compilation application scenario is optimized to reduce the compilation duration.
+PV-qspinlock is an optimization of spinlocks in virtualization CPU overcommitment scenarios. It allows a hypervisor to block a vCPU in the lock context and wake up the corresponding vCPU after the lock is released. In overcommitment scenarios, PV-qspinlock can better utilize pCPU resources and optimize the compilation process, reducing the time required for compiling applications.
 
-#### Instructions
+#### Operation Guide
 
-Modify the **/boot/efi/EFI/openEuler/grub.cfg** configuration file of the VM, add **arm_pvspin** to the startup parameter in the command line, and restart the VM for the modification to take effect. After PV-qspinlock takes effect, run the **dmesg** command on the VM. The following information is displayed:
+Modify the `/boot/efi/EFI/openEuler/grub.cfg` configuration file of a VM by adding `arm_pvspin` to the command-line startup parameter. The modification takes effect after the VM is restarted. After PV-qspinlock takes effect, you can run the `dmesg` command on the VM to find the following log:
 
-```shell
+```text
 [    0.000000] arm-pv: PV qspinlocks enabled
 ```
 
-> [!NOTE]NOTE   
-> PV-qspinlock is supported only when the operating systems of the host machine and VM are both openEuler 20.09 or later and the VM kernel compilation option **CONFIG_PARAVIRT_SPINLOCKS** is set to **y** (default value for openEuler).
+>![NOTE](./public_sys_resources/icon_note.gif)
+>PV-qspinlock is supported only when both the host and VM run openEuler 20.09 or later and the VM kernel compilation option is set as `CONFIG_PARAVIRT_SPINLOCKS=y` (default configuration on openEuler).
 
 ### Guest-Idle-Haltpoll
 
 #### Overview
 
-To ensure fairness and reduce power consumption, when the vCPU of the VM is idle, the VM executes the WFx/HLT instruction to exit to the host machine and triggers context switchover. The host machine determines whether to schedule other processes or vCPUs on the physical CPU or enter the energy saving mode. However, overheads of switching between a virtual machine and a host machine, additional context switching, and IPI wakeup are relatively high, and this problem is particularly prominent in services where sleep and wakeup are frequently performed. The Guest-Idle-Haltpoll technology indicates that when the vCPU of a VM is idle, the WFx/HLT is not executed immediately and VM-exit occurs. Instead, polling is performed on the VM for a period of time. During this period, the tasks of other vCPUs that share the LLC on the vCPU are woken up without sending IPI interrupts. This reduces the overhead of sending and receiving IPI interrupts and the overhead of VM-exit, thereby reducing the task wakeup latency.
+To ensure fairness and reduce power consumption, when the vCPUs of a VM are idle, the VM executes the WFx/HLT instruction to exit the host machine and triggers a context switch. The host machine determines whether to schedule other processes or vCPUs on the physical CPU or enter the energy saving mode. However, switching between the VM and the host machine, additional context switches, and IPI interrupt wakeup cause relatively high overhead, and this problem is particularly prominent in a service of frequent sleep and wakeup. The Guest-Idle-Haltpoll technology means that when a VM vCPU is idle, it does not immediately execute WFx/HLT and trigger a VM-exit, but instead, the vCPU performs polling for a period of time within the VM. During this period, tasks of other vCPUs that share the LLC are woken up on the vCPU without the need to send IPI interrupts, reducing the overhead of sending and receiving IPIs and the VM-exit overhead. This reduces the task wakeup latency.
 
-> [!NOTE]NOTE 
-The execution of the **idle-haltpoll** command by the vCPU on the VM increases the CPU overhead of the vCPU on the host machine. Therefore, it is recommended that the vCPU exclusively occupy physical cores on the host machine when this feature is enabled.
+>![NOTE](./public_sys_resources/icon_note.gif)
+>Enabling idle-haltpoll for a vCPU within a VM increases the CPU overhead of the vCPU on the host machine. Therefore, it is recommended that the vCPU exclusively occupy a physical core on the host machine when this feature is enabled.
 
-#### Procedure
+#### Operation Guide
 
 The Guest-Idle-Haltpoll feature is disabled by default. The following describes how to enable this feature.
 
 1. Enable the Guest-Idle-Haltpoll feature.
-    - If the processor architecture of the host machine is x86, you can configure hint-dedicated in the XML file of the VM on the host machine to enable this feature. In this way, the status that the vCPU exclusively occupies the physical core can be transferred to the VM through the VM XML configuration. The host machine ensures the status of the physical core exclusively occupied by the vCPU.
+    - If the host machine uses the x86 processor architecture, you can enable this feature by configuring `hint-dedicated` in the VM XML file of the host machine. The VM XML configuration transfers the status of the vCPU exclusively occupying a physical core to the VM. The host machine ensures that the vCPU exclusively occupies a physical core.
 
-        ```xml
+        ```Conf
         <domain type='kvm'>
          ...
          <features>
@@ -247,44 +301,263 @@ The Guest-Idle-Haltpoll feature is disabled by default. The following describes 
         </domain>
         ```
 
-        Alternatively, set **cpuidle\_haltpoll.force** to **Y** in the kernel startup parameters of the VM to forcibly enable the function. This method does not require the host machine to configure the vCPU to exclusively occupy the physical core.
+        Alternatively, you can configure `cpuidle\_haltpoll.force=Y` in the VM kernel startup parameters to forcibly enable this feature. This method does not require you to configure the vCPU to exclusively occupy a physical core on the host machine.
 
-        ```ini
+        ```Conf
         cpuidle_haltpoll.force=Y
         ```
 
-    - If the processor architecture of the host machine is AArch64, this feature can be enabled only by configuring **cpuidle\_haltpoll.force=Y haltpoll.enable=Y** in the VM kernel startup parameters.
+    - If the host machine uses the AArch64 processor architecture, you can enable this feature only by configuring `cpuidle\_haltpoll.force=Y haltpoll.enable=Y` in the VM kernel startup parameters.
 
-        ```ini
+        ```Conf
         cpuidle_haltpoll.force=Y haltpoll.enable=Y
         ```
 
-2. Check whether the Guest-Idle-Haltpoll feature takes effect. Run the following command on the VM. If **haltpoll** is returned, the feature has taken effect.
+2. Check whether the Guest-Idle-Haltpoll feature has taken effect. Run the following command on the VM. If `haltpoll` is displayed, the feature has taken effect.
 
-    ```shell
+    ```Shell
     # cat /sys/devices/system/cpu/cpuidle/current_driver
     ```
 
-3. (Optional) Set the Guest-Idle-Haltpoll parameter.
+3. (Optional) Configure Guest-Idle-Haltpoll parameters.
+    The following configuration files are provided in the `/sys/module/haltpoll/parameters/` path of the VM to adjust configuration parameters. You can adjust the parameters based on service characteristics.
 
-    The following configuration files are provided in the **/sys/module/haltpoll/parameters/** directory of the VM. You can adjust the configuration parameters based on service characteristics.
+    - `guest\_halt\_poll\_ns`: a global parameter that specifies the maximum polling duration after a vCPU is idle. The default value is 200000 ns.
+    - `guest\_halt\_poll\_shrink`: a divisor used to shrink `guest\_halt\_poll\_ns` of the current vCPU when a wakeup event occurs after the global `guest\_halt\_poll\_ns`. The default value is 2.
+    - `guest\_halt\_poll\_grow`: a multiplier used to extend `guest\_halt\_poll\_ns` of the current vCPU when a wakeup event occurs after `guest\_halt\_poll\_ns` of the current vCPU and before the global `guest\_halt\_poll\_ns`. The default value is 2.
+    - `guest\_halt\_poll\_grow\_start`: When the system is idle, `guest\_halt\_poll\_ns` of each vCPU eventually reaches zero. This parameter is used to set the initial value of `guest\_halt\_poll\_ns` of the current vCPU so that the vCPU polling duration can be shrunk or extended. The default value is 50000 ns.
+    - `guest\_halt\_poll\_allow\_shrink`: whether to allow `guest\_halt\_poll\_ns` of each vCPU to be shrunk. The default value is `Y` (`Y` indicates that shrink is allowed, and `N` indicates that shrink is not allowed).
 
-    - **guest\_halt\_poll\_ns**: a global parameter that specifies the maximum polling duration after the vCPU is idle. The default value is **200000** (unit: ns).
-    - **guest\_halt\_poll\_shrink**:  a divisor that is used to shrink the current vCPU **guest\_halt\_poll\_ns** when the wakeup event occurs after the **global guest\_halt\_poll\_ns** time. The default value is **2**.
-    - **guest\_halt\_poll\_grow**:  a multiplier that is used to extend the current vCPU **guest\_halt\_poll\_ns** when the wakeup event occurs after the current vCPU **guest\_halt\_poll\_ns** and before the global **guest\_halt\_poll\_ns**. The default value is **2**.
-    - **guest\_halt\_poll\_grow\_start**: When the system is idle, the **guest\_halt\_poll\_ns** of each vCPU reaches 0. This parameter is used to set the initial value of the current vCPU **guest\_halt\_poll\_ns** to facilitate scaling in and scaling out of the vCPU polling duration. The default value is **50000** (unit: ns).
-    - **guest\_halt\_poll\_allow\_shrink**: a switch that is used to enable vCPU **guest\_halt\_poll\_ns** scale-in. The default value is **Y**. (**Y** indicates enabling the scale-in; **N** indicates disabling the scale-in.)
+    You can run the following command as the `root` user to change the parameter value: In the command, _value_ indicates the parameter value to be set, and _configFile_ indicates the corresponding configuration file.
 
-    You can run the following command as the **root** user to change the parameter values. In the preceding command, _value_ indicates the parameter value to be set, and _configFile_ indicates the corresponding configuration file.
-
-    ```shell
+    ```Shell
     # echo value > /sys/module/haltpoll/parameters/configFile
     ```
 
-    For example, to set the global guest\_halt\_poll\_ns to 200000 ns, run the following command:
+    For example, to set the global `guest\_halt\_poll\_ns` to 200000 ns, run the following command:
 
-    ```shell
+    ```Shell
     # echo 200000 > /sys/module/haltpoll/parameters/guest_halt_poll_ns
+    ```
+
+### NVMe Drive Passthrough
+
+#### Overview
+
+The device passthrough technology is a hardware-based virtualization solution. With this technology, VMs can be directly connected to specified physical passthrough devices. To improve VM storage performance, you can use the PCI passthrough technology to pass through NVMe drives to VMs.
+
+#### Operation Guide
+
+1. Prepare for the use.
+
+    - Ensure that the driver provided by the NVMe drive vendor is installed in the guest OS. Otherwise, the NVMe drive cannot work properly.
+    - Ensure that the VT-d and VT-x support of the CPU is enabled on the host OS.
+    - Ensure that the IOMMU function of the kernel is enabled on the host OS.
+    - Ensure that the interrupt remapping function of the kernel is enabled on the host OS.
+
+2. Obtain the PCI BDF information of an NVMe drive.
+
+    Run the `lspci` command on the host to obtain the resource list of PCI devices on the host.
+
+    ```Shell
+    # lspci -vmm
+    Slot: 81:00.1
+    Class: Non-Volatile memory controller
+    ...
+    ```
+
+    In the command output, `Slot` indicates the PCI BDF number of the NVMe drive, `81` indicates the bus number, `00` indicates the slot number, and `1` indicates the function number.
+
+3. Mount a PCI passthrough NVMe drive to a VM.
+
+    When creating a VM, add the PCI NVMe drive passthrough configuration option to the corresponding XML configuration file. The following is an example of the configuration file:
+
+    ```Conf
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+        <source>
+            <address domain='0x0000' bus='0x81' slot='0x00' function='0x1' />
+        </source>
+    </hostdev>
+    ```
+
+    - `hostdev.source.address.domain`: domain number of the PCI device on the host OS.
+    - `hostdev.source.address.bus`: bus number of the PCI device on the host OS.
+    - `hostdev.source.address.slot`: slot number of the PCI device on the host OS.
+    - `hostdev.source.address.function`: function number of the PCI device on the host OS.
+
+4. Specify a PCI BAR of the NVMe drive.
+
+    To further maximize the performance of the NVMe drive, you need to specify a BAR for PCI MSI-X interrupts of the passthrough NVMe drive in the guest OS. The configuration is as follows:
+
+    ```Conf
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+        <source>
+            <address domain='0x0000' bus='0x01' slot='0x00' function='0x0' />
+        </source>
+        <alias name='ua-sm2262'/>
+                <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </hostdev>
+        <qemu:commandline>
+            <qemu:arg value='-set'/>
+            <qemu:arg value='device.ua-sm2262.x-msix-relocation=bar2'/>
+        </qemu:commandline>
+    ```
+
+    In the preceding XML configuration, the interrupt information of the passthrough NVMe drive is processed on BAR 2. After this configuration is added, the performance of the NVMe drive in the guest OS is almost the same as the performance of the NVMe drive in the host OS.
+
+### Transparent Transmission of Hardware Topology
+
+#### Overview
+
+CPU topology information shows how CPU cores are organized hierarchically on hardware, such as sockets, clusters, cores, and threads. The CPU topology information is provided to the kernel through the Advanced Configuration and Power Interface (ACPI) or Device Tree (DT). In virtualization scenarios, the ACPI or DT of a VM is generated by a virtualization component. The virtualization component generates the ACPI or DT based on the user-defined CPU topology, and loads them, together with the VM kernel, to the VM memory address space. In this way, the VM can detect the CPU topology information to make better task scheduling decisions.
+
+#### Operation Guide
+
+Add the CPU topology information to the XML file of the VM.
+
+```Conf
+<vcpu placement='static' current='4'>32</vcpu>
+    <cpu mode='host-passthrough' check='none'>
+    <topology sockets='1' clusters='4' cores='4' threads='2'/>
+</cpu>
+```
+
+According to the XML `<vcpu>` tag, `32` indicates the maximum number of CPUs on the VM. The `topology` tag specifies the vCPU topology information. The value of `sockets * clusters * cores * threads` must be equal to the maximum number of CPUs on the VM.
+
+After the VM is started, you can view the CPU topology information of the VM in the `/sys/devices/system/cpu` path.
+
+### vCPU Core Binding
+
+#### Overview
+
+A vCPU is pinned to a physical CPU and can be scheduled only on this physical CPU. This improves VM performance in some scenarios. Otherwise, the vCPU can run on any physical CPU by default, which may cause interference across VMs or across vCPUs on the same VM. In the many-core scenario, you can bind each vCPU to a physical CPU to optimize vCPU performance.
+
+#### Operation Guide
+
+```Conf
+<cputune>
+    <vcpupin vcpu='0' cpuset='20'/>
+    <vcpupin vcpu='1' cpuset='21'/>
+    ......
+</cputune>
+```
+
+In the XML example, `vcpu` indicates the vCPU ID, and `cpuset` indicates the ID of the physical CPU to which the vCPU is to be pined.
+
+You can run the `virsh vpuinfo vmname` command on the host to check the mapping between vCPUs and physical CPUs.
+
+### NUMA Affinity
+
+#### Overview
+
+Before starting the VM, you can specify NUMA nodes for VM memory in the VM configuration file. This improves VM performance by preventing remote memory access. You can also configure virtual NUMA to expose multiple NUMA nodes to the VM, so that the VM can recognize NUMA differences and prevent cross-node access.
+
+#### Operation Guide
+
+```Conf
+<cputune>
+    <vcpupin vcpu='0' cpuset='0'/>
+    <vcpupin vcpu='1' cpuset='1'/>
+    <vcpupin vcpu='2' cpuset='2'/>
+    <vcpupin vcpu='3' cpuset='3'/>
+</cputune>
+<numatune>
+    <memnode cellid="0" mode="strict" nodeset="0"/>
+    <memnode cellid="1" mode="strict" nodeset="1"/>
+</numatune>
+```
+
+In `<numatune>`, `cellid` indicates the NUMA ID of a VM. `mode` can be set to: `strict` (which means that memory must be allocated exclusively from specified node. If the node cannot satisfy the request, the allocation fails.); `preferred` (which means that memory is preferably allocated from the specified node, but may fall back to other nodes if necessary); or `interleave` (which means that memory is allocated across specified nodes.). `nodeset` indicates a specified physical NUMA node. In `<cputune>`, the vCPUs within the same `cellid` must be pinned to the physical NUMA node specified by `memnode`.
+
+### WFI-no-trap
+
+#### Overview
+
+Based on the Virtual Software Generated Interrupt (vSGI) passthrough feature of GICv4.1, a Kernel-based VM (KVM) is configured to avoid trapping Wait For Interrupt (WFI) instructions. As a result, when a vCPU thread enters an idle state and executes WFI, it no longer traps into KVM. This eliminates VM exits and VM entries, thereby reducing virtualization overhead and in-guest latency.
+
+#### Operation Guide
+
+Configure the interrupt passthrough parameter in `cmdline`.
+
+```Shell
+kvm-arm.vgic_v4_enable=1
+```
+
+Disable the KVM WFI trap switch.
+
+```Shell
+echo N > /sys/module/kvm/parameters/force_wfi_trap
+```
+
+After creating a VM, use `vmtop` to check whether any WFI traps have occurred.
+
+### NIC Passthrough
+
+#### Overview
+
+NIC passthrough is an application of the PCI passthrough technology. The PCI passthrough is a hardware-assisted virtualization solution. It allows VMs to directly access physical PCI devices, reducing virtualization overhead.
+
+#### Operation Guide
+
+To enable PCI passthrough for devices like Huawei Hi1822 NIC on a VM, follow these steps:
+
+1. Obtain PCI BDF information of a device.
+   You can run the `lspci | grep Eth` command on the host to obtain the NIC resource list of the current board. For example, the PCI BDF number `03:00.0` identifies a port on the Huawei Hi1822 4 x 25GE NIC.
+
+   ```Shell
+    03:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    04:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    05:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    06:00.0 Ethernet controller: Huawei Technologies Co., Ltd. Hi1822 Family (4*25GE) (rev 45)
+    ```
+
+2. Assign PCI passthrough NICs to a VM.
+   When creating a VM, add a PCI passthrough entry for the NICs to the VM configuration file:
+
+   ```Conf
+    <devices>
+    ...
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+    <driver name='vfio'/>
+    <source>
+        <address domain='0x0000' bus='0x03' slot='0x10' function='0x00'/>
+    </source>
+    <rom bar='on'/>
+    <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </hostdev>
+    ...
+    </devices>
+    ```
+
+### NUMA Exposure for Passthrough Devices
+
+#### Overview
+
+On a VM, you can use the `sysfs` interface to view the NUMA node where a passthrough device resides. This allows you to deploy service applications based on the NUMA node where a device resides, reducing performance loss caused by cross-NUMA resource access and improving the performance of service applications on the VM.
+
+#### Operation Guide
+
+- XML configuration for NUMA information of passthrough devices:
+
+   ```Conf
+    <devices>
+    ...
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+    <driver name='vfio'/>
+    <source>
+        <address domain='0x0000' bus='0x03' slot='0x10' function='0x00'/>
+    </source>
+    <numa node='0'>
+    <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </hostdev>
+    ...
+    </devices>
+    ```
+
+- View the NUMA node where a passthrough device resides in a VM.
+
+    ```Shell
+    # cat /sys/bus/pci/devices/bdf/numa_node
     ```
 
 ## Security Best Practices
@@ -297,52 +570,52 @@ When a user uses libvirt remote invocation but no authentication is performed, a
 
 #### Enabling Libvirt Authentication
 
-By default, the libvirt remote invocation function is disabled on openEuler. This following describes how to enable the libvirt remote invocation and libvirt authentication functions.
+By default, the libvirt remote invocation function is disabled on openEuler. The following describes how to enable the libvirt remote invocation and libvirt authentication functions.
 
-1. Log in to the host.
-2. Modify the libvirt service configuration file  **/etc/libvirt/libvirtd.conf**  to enable the libvirt remote invocation and libvirt authentication functions. For example, to enable the TCP remote invocation that is based on the Simple Authentication and Security Layer \(SASL\) framework, configure parameters by referring to the following:
+1. Log in to a host as the `root` user.
+2. Modify the libvirt service configuration file `/etc/libvirt/libvirtd.conf` to enable the libvirt remote invocation and libvirt authentication functions. For example, to enable the TCP remote invocation that is based on the Simple Authentication and Security Layer (SASL) framework, configure parameters by referring to the following:
 
-    ```ini
-    #Transport layer security protocol. The value 0 indicates that the protocol is disabled, and the value 1 indicates that the protocol is enabled. You can set the value as needed.
+    ```Conf
+    # Transport layer security protocol. `0` indicates that the protocol is disabled, and `1` indicates that the protocol is enabled. You can set the value as needed.
     listen_tls = 0
-    #Enable the TCP remote invocation. To enable the libvirt remote invocation and libvirt authentication functions, set the value to 1.
+    # Enable the TCP remote invocation. To enable the libvirt remote invocation and libvirt authentication functions, set the parameter to `1`.    
     listen_tcp = 1
-    #User-defined protocol configuration for TCP remote invocation. The following uses sasl as an example.
+    # User-defined protocol configuration for TCP remote invocation. The following uses `sasl` as an example.   
     auth_tcp = "sasl" 
     ```
 
-3. Modify the  **/etc/sasl2/libvirt.conf**  configuration file to set the SASL mechanism and SASLDB.
+3. Modify the `/etc/sasl2/libvirt.conf` configuration file to set the SASL mechanism and SASLDB.
 
-    ```ini
-    #Authentication mechanism of the SASL framework.
+    ```Conf
+    # Authentication mechanism of the SASL framework
     mech_list: digest-md5
-    #Database for storing usernames and passwords
+    # Database for storing usernames and passwords
     sasldb_path: /etc/libvirt/passwd.db
     ```
 
-4. Add the user for SASL authentication and set the password. Take the user  **userName**  as an example. The command is as follows:
+4. Add the user for SASL authentication and set the password. Take the user `userName` as an example. The command is as follows:
 
-    ```shell
+    ```Shell
     # saslpasswd2 -a libvirt userName
     Password:
     Again (for verification):
     ```
 
-5. Modify the  **/etc/sysconfig/libvirtd**  configuration file to enable the libvirt listening option.
+5. Modify the `/etc/sysconfig/libvirtd` configuration file to enable the libvirt listening option.
 
-    ```ini
+    ```Conf
     LIBVIRTD_ARGS="--listen"
     ```
 
-6. Restart the libvirtd service to make the modification to take effect.
+6. Restart the libvirtd service to make the modification take effect.
 
-    ```shell
+    ```Shell
     # systemctl restart libvirtd
     ```
 
 7. Check whether the authentication function for libvirt remote invocation takes effect. Enter the username and password as prompted. If the libvirt service is successfully connected, the function is successfully enabled.
 
-    ```shell
+    ```Shell
     # virsh -c qemu+tcp://192.168.0.1/system
     Please enter your authentication name: openeuler
     Please enter your password:
@@ -356,46 +629,46 @@ By default, the libvirt remote invocation function is disabled on openEuler. Thi
 
 #### Managing SASL
 
-The following describes how to manage SASL users.
+The following describes how to manage SASL users. Perform the operations as the `root` user.
 
-Query an existing user in the database.
+- Query an existing user in the database.
 
-```shell
-# sasldblistusers2 -f /etc/libvirt/passwd.db
-user@localhost.localdomain: userPassword
-```
+    ```Shell
+    # sasldblistusers2 -f /etc/libvirt/passwd.db
+    user@localhost.localdomain: userPassword
+    ```
 
-Delete a user from the database.
+- Delete a user from the database.
 
-```shell
-# saslpasswd2 -a libvirt -d user
-```
+    ```Shell
+    # saslpasswd2 -a libvirt -d user
+    ```
 
 ### qemu-ga
 
 #### Overview
 
-QEMU guest agent \(qemu-ga\) is a daemon running within VMs. It allows users on a host OS to perform various management operations on the guest OS through outband channels provided by QEMU. The operations include file operations \(open, read, write, close, seek, and flush\), internal shutdown, VM suspend \(suspend-disk, suspend-ram, and suspend-hybrid\), and obtaining of VM internal information \(including the memory, CPU, NIC, and OS information\).
+QEMU guest agent (qemu-ga) is a daemon running within VMs. It allows users on a host OS to perform various management operations on the guest OS through outband channels provided by QEMU. The operations include file operations (open, read, write, close, seek, and flush), internal shutdown, VM suspend (suspend-disk, suspend-ram, and suspend-hybrid), and obtaining of VM internal information (including the memory, CPU, NIC, and OS information).
 
 In some scenarios with high security requirements, qemu-ga provides the blacklist function to prevent internal information leakage of VMs. You can use a blacklist to selectively shield some functions provided by qemu-ga.
 
-> [!NOTE]NOTE   
-> The qemu-ga installation package is  **qemu-guest-agent-**_xx_**.rpm**. It is not installed on openEuler by default.  _xx_  indicates the actual version number.  
+>![NOTE](./public_sys_resources/icon_note.gif)
+>The qemu-ga installation package is `qemu-guest-agent-xx.rpm`. It is not installed on openEuler by default. `xx` indicates the actual version number. 
 
-#### Procedure
+#### Operation Method
 
-To add a qemu-ga blacklist, perform the following steps:
+To add a qemu-ga blacklist, perform the following steps as the `root` user:
 
 1. Log in to the VM and ensure that the qemu-guest-agent service exists and is running.
 
-    ```shell
+    ```Shell
     # systemctl status qemu-guest-agent |grep Active
        Active: active (running) since Wed 2018-03-28 08:17:33 CST; 9h ago
     ```
 
-2. Query which  **qemu-ga**  commands can be added to the blacklist:
+2. Query which `qemu-ga` commands can be added to the blacklist:
 
-    ```shell
+    ```Shell
     # qemu-ga --blacklist ?
     guest-sync-delimited
     guest-sync
@@ -406,9 +679,9 @@ To add a qemu-ga blacklist, perform the following steps:
     ...
     ```
 
-3. Set the blacklist. Add the commands to be shielded to  **--blacklist**  in the  **/usr/lib/systemd/system/qemu-guest-agent.service**  file. Use spaces to separate different commands. For example, to add the  **guest-file-open**  and  **guest-file-close**  commands to the blacklist, configure the file by referring to the following:
+3. Set the blacklist. Add the commands to be shielded to `--blacklist` in the `/usr/lib/systemd/system/qemu-guest-agent.service` file. Use spaces to separate different commands. For example, to add the `guest-file-open` and `guest-file-close` commands to the blacklist, configure the file by referring to the following:
 
-    ```ini
+    ```Conf
     [Service]
     ExecStart=-/usr/bin/qemu-ga \
           --blacklist=guest-file-open guest-file-close
@@ -416,149 +689,146 @@ To add a qemu-ga blacklist, perform the following steps:
 
 4. Restart the qemu-guest-agent service.
 
-    ```shell
+    ```Shell
     # systemctl daemon-reload
     # systemctl restart qemu-guest-agent
     ```
 
-5. Check whether the qemu-ga blacklist function takes effect on the VM, that is, whether the  **--blacklist**  parameter configured for the qemu-ga process is correct.
+5. Check whether the qemu-ga blacklist function takes effect on the VM, that is, whether the `--blacklist` parameter configured for the qemu-ga process is correct.
 
-    ```shell
+    ```Shell
     # ps -ef|grep qemu-ga|grep -E "blacklist=|b="
     root       727     1  0 08:17 ?        00:00:00 /usr/bin/qemu-ga --method=virtio-serial --path=/dev/virtio-ports/org.qemu.guest_agent.0 --blacklist=guest-file-open guest-file-close guest-file-read guest-file-write guest-file-seek guest-file-flush -F/etc/qemu-ga/fsfreeze-hook
     ```
 
-    > [!NOTE]NOTE   
-    > For more information about qemu-ga, visit  [https://wiki.qemu.org/Features/GuestAgent](https://wiki.qemu.org/Features/GuestAgent).  
+    >![NOTE](./public_sys_resources/icon_note.gif)
+    >For more information about qemu-ga, visit [https://wiki.qemu.org/Features/GuestAgent](https://wiki.qemu.org/Features/GuestAgent). 
 
 ### sVirt Protection
 
 #### Overview
 
-In a virtualization environment that uses the discretionary access control \(DAC\) policy only, malicious VMs running on hosts may attack the hypervisor or other VMs. To improve security in virtualization scenarios, openEuler uses sVirt for protection. sVirt is a security protection technology based on SELinux. It is applicable to KVM virtualization scenarios. A VM is a common process on the host OS. In the hypervisor, the sVirt mechanism labels QEMU processes corresponding to VMs with SELinux labels. In addition to types which are used to label virtualization processes and files, different categories are used to label different VMs. Each VM can access only file devices of the same category. This prevents VMs from accessing files and devices on unauthorized hosts or other VMs, thereby preventing VM escape and improving host and VM security.
+In a virtualization environment that uses the discretionary access control (DAC) policy only, malicious VMs running on hosts may attack the hypervisor or other VMs. To improve security in virtualization scenarios, openEuler uses sVirt for protection. sVirt is a security protection technology based on SELinux. It is applicable to KVM virtualization scenarios. A VM is a common process on the host OS. In the hypervisor, the sVirt mechanism labels QEMU processes corresponding to VMs with SELinux labels. In addition to types which are used to label virtualization processes and files, different categories (in the seclevel range) are used to label different VMs. Each VM can access only file devices of the same category. This prevents VMs from accessing files and devices on unauthorized hosts or other VMs, thereby preventing VM escape and improving host and VM security.
 
 #### Enabling sVirt Protection
 
-1. Enable SELinux on the host.
+##### I. Perform the following steps as the root user to enable SELinux on the host
 
-    1. Log in to the host.
-    2. Enable the SELinux function on the host.
+1. Log in to the host.
+2. Enable the SELinux function on the host.
+    1. Modify the system startup parameter file `grub.cfg` to set `selinux` to `1`.
 
-        - Modify the system startup parameter file  **grub.cfg**  to set  **selinux**  to  **1**.
-
-            ```ini
-            selinux=1
-            ```
-
-        - Modify  **/etc/selinux/config**  to set the  **SELINUX**  to  **enforcing**.
-
-            ```ini
-            SELINUX=enforcing
-            ```
-
-    3. Restart the host.
-
-        ```shell
-        # reboot
+        ```Conf
+        selinux=1
         ```
 
-2. Create a VM where the sVirt function is enabled.
+    2. Modify `/etc/selinux/config` to set the `SELINUX` to `enforcing`.
 
-    1. Add the following information to the VM configuration file:
-
-        ```xml
-        <seclabel type='dynamic' model='selinux' relabel='yes'/>
+        ```Conf
+        SELINUX=enforcing
         ```
 
-        Or check whether the following configuration exists in the file:
+3. Restart the host.
 
-        ```xml
-        <seclabel type='none' model='selinux'/>
-        ```
-
-    2. Create a VM.
-
-        ```shell
-        # virsh define openEulerVM.xml
-        ```
-
-3. Check whether sVirt is enabled.
-    Run the following command to check whether sVirt protection has been enabled for the QEMU process of the running VM. If  **svirt\_t:s0:c**  exists, sVirt protection has been enabled.
-
-    ```shell
-    # ps -eZ|grep qemu |grep "svirt_t:s0:c"
-    system_u:system_r:svirt_t:s0:c200,c947 11359 ? 00:03:59 qemu-kvm
-    system_u:system_r:svirt_t:s0:c427,c670 13790 ? 19:02:07 qemu-kvm
+    ```Shell
+    # reboot
     ```
 
-### VM Trusted Boot
+##### II. Create a VM with the sVirt function enabled
+
+1. Add the following information to the VM configuration file:
+
+    ```Conf
+    <seclabel type='dynamic' model='selinux' relabel='yes'/>
+    ```
+
+    Or check whether the following configuration exists in the file:
+
+    ```Conf
+    <seclabel type='none' model='selinux'/>
+    ```
+
+2. Create a VM.
+
+    ```Shell
+    # virsh define openEulerVM.xml
+    ```
+
+##### III. Verify that sVirt is enabled
+
+Run the following command to check whether sVirt protection has been enabled for the QEMU process of the running VM. If `svirt\_t:s0:c` exists, sVirt protection has been enabled.
+
+```Shell
+# ps -eZ|grep qemu |grep "svirt_t:s0:c"
+system_u:system_r:svirt_t:s0:c200,c947 11359 ? 00:03:59 qemu-kvm
+system_u:system_r:svirt_t:s0:c427,c670 13790 ? 19:02:07 qemu-kvm
+```
+
+### Trusted VM Boot
 
 #### Overview
 
-Trusted boot includes measure boot and remote attestation. The measure boot function is mainly provided by virtualization component. The remote attestation function is enabled by users who install related software (RA client) on VMs and set up the RA server.
+Trusted boot includes measured boot and remote attestation. The virtualization component mainly provides the measured boot function. Remote attestation is enabled by users by installing related software (RA client) on the VM and setting up a remote attestation server (RA server).
 
-The two basic elements for measure boot are the root of trust (RoT) and chain of trust. The basic idea is to establish a RoT in the computer system. The trustworthiness of the RoT is ensured by physical security, technical security, and management security, that is, CRTM (Core Root of Trust for Measurement). A chain of trust is established, starting from the RoT to the BIOS/BootLoader, operating system, and then to the application. The measure boot and trust is performed by one level to the previous level. Finally, the trust is extended to the entire system. The preceding process looks like a chain, so it is called a chain of trust.
+The two basic elements of measured boot are the root of trust (RoT) and chain of trust. The fundamental idea is to establish a RoT in the computer system to act as the Core Root of Trust for Measurement (CRTM). The credibility of the RoT is ensured from the aspects of physical security, technical security, and management security. Then, a chain of trust is established, starting from the RoT, through the BIOS/BootLoader and operating system, to applications. In this way, measurement, authentication, and trust are implemented level by level to extend trust throughout the system. This process is like a chain, so it is called a chain of trust.
 
-The CRTM is the root of the measure boot and the first component of the system startup. No other code is used to check the integrity of the CRTM. Therefore, as the starting point of the chain of trust, it must be an absolutely trusted source of trust. The CRTM needs to be technically designed as a segment of read-only or strictly restricted code to defend against BIOS attacks and prevent remote injection of malicious code or modification of startup code at the upper layer of the operating system. In a physical host, the CPU microcode is used as the CRTM. In a virtualization environment, the sec part of the vBIOS is generally the CRTM.
+The CRTM is the root of measured boot and the first component to start in the system. There is no other code to check the integrity of the CRTM itself. Therefore, as the starting point in the chain of trust, it must be an absolutely trusted source. Therefore, the CRTM needs to be designed as read-only code or code with strictly limited updates to defend against BIOS attacks and prevent remote injection of malicious code or modification of the boot code at the upper layer of the operating system. In a physical host, the microcode in the CPU is usually used as the CRTM. In a virtualization environment, the SEC section of the vBIOS is usually used as the CRTM.
 
-During startup, the previous component measures (calculates the hash value) the next component, and then extends the measurement value to the trusted storage area, for example, the PCR of the TPM. The CRTM measurement BootLoader extends the measurement value to the PCR, and the BootLoader measurement OS extends the measurement value to the PCR.
+During the boot process, the previous component measures (calculates the hash value) the next component and then extends the measurement value to a trusted storage area, such as the PCR of the TPM. The CRTM measures the BootLoader and extends the measurement value to the PCR. The BootLoader measures the OS and extends the measurement value to the PCR.
 
-#### Configuring the vTPM Device to Enable Measurement Startup
+#### Configuring a vTPM Device and Enabling Measured Boot
 
-##### Installing the swtpm and libtpms Software
+##### I. Install the swtpm and libtpms software
 
-swtpm provides a TPM emulator (TPM 1.2 and TPM 2.0) that can be integrated into a virtualization environment. So far, it has been integrated into QEMU and serves as a prototype system in RunC. swtpm uses libtpms to provide TPM1.2 and TPM2.0 simulation functions.
-Currently, openEuler 21.03 provides the libtpms and swtpm sources. You can run the yum command to install them.
+swtpm provides a TPM emulator (TPM 1.2 or TPM 2.0) that can be integrated into a virtualization environment. So far, it has been integrated into QEMU and also used as a prototype system in RunC. swtpm uses libtpms to provide the simulation functions of TPM 1.2 and TPM 2.0.
+Currently, openEuler 21.03 provides the sources of libtpms and swtpm, which can be installed using yum commands.
 
-```shell
+```Shell
 # yum install libtpms swtpm swtpm-devel swtpm-tools
 ```
 
-##### Configuring the vTPM Device for the VM
+##### II. Configure a vTPM Device for a VM
 
-1. Add the following configuration to the VM configuration file:
+1. Add the following information to the VM configuration file:
 
-    ```xml
+    ```Conf
     <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
     ...
-        <devices>
-            ...
-            <tpm model='tpm-tis'>
-                <backend type='emulator' version='2.0'/>
-            </tpm>
-            ...
-        </devices>
+    <devices>
+        ...
+        <tpm model='tpm-tis'>
+        <backend type='emulator' version='2.0'/>
+        </tpm>
+        ...
+    </devices>
             ...
     </domain>
     ```
 
-    > [!NOTE]NOTE  
-    > Currently, trusted boot of VMs on the AArch64 architecture of openEuler 20.09 does not support the ACPI feature. Therefore, do not configure the ACPI feature for VMs. Otherwise, vTPM devices cannot be identified after VMs are started. If the AArch64 architecture is used in versions earlier than openEuler 22.09, set **tpm model** to **&lt;tpm model='tpm-tis-device'&gt;**.
-
 2. Create a VM.
 
-    ```shell
+    ```Shell
     # virsh define MeasuredBoot.xml
     ```
 
 3. Start the VM.
 
-    Before starting the VM, run the **chmod** command to grant the following permissions to the **/var/lib/swtpm-localca/** directory. Otherwise, libvirt cannot start swtpm.
+    Before starting the VM, run the `chmod` command to grant the following permissions to the `/var/lib/swtpm-localca/` directory. Otherwise, libvirt cannot start swtpm.
 
-    ```shell
-    # chmod -R 777 /var/lib/swtpm-localca/
-    #
+    ```Shell
+        # chmod -R 777 /var/lib/swtpm-localca/
+        #
     # virsh start MeasuredbootVM
     ```
 
-##### Confirming that the Measure Boot Is Successfully Enabled
+##### III. Verify that measured boot is enabled successfully
 
-The vBIOS determines whether to enable the measure boot function. Currently, the vBIOS in openEuler 20.09 has the measure boot capability. If the host machine uses the edk2 component of another version, check whether the edk2 component supports the measure boot function.
+Whether measured boot is enabled is determined by the vBIOS. Currently, the vBIOS in openEuler 21.03 supports measured boot. If the host uses the edk2 component of another version, check whether it supports measured boot.
 
-Log in to the VM as the **root** user and check whether the TPM driver, tpm2-tss protocol stack, and tpm2-tools are installed on the VM.
-By default, the tpm driver (tpm_tis.ko), tpm2-tss protocol stack, and tpm2-tools are installed in openEuler 21.03. If another OS is used, run the following command to check whether the driver and related tools are installed:
+Log in to the VM as the `root` user and check whether the TPM driver, tpm2-tss protocol stack, and tpm2-tools tool are installed on the VM.
+In openEuler 21.03, the TPM driver (`tpm_tis.ko`), tpm2-tss protocol stack, and tpm2-tools tool are installed by default. If another OS is used, run the following commands to check whether the driver and related tools are installed:
 
-```shell
+```Shell
 # lsmod |grep tpm
 # tpm_tis          16384   0
 #
@@ -567,9 +837,9 @@ By default, the tpm driver (tpm_tis.ko), tpm2-tss protocol stack, and tpm2-tools
 # yum install tpm2-tss tpm2-tools
 ```
 
-You can run the **tpm2_pcrread** (**tpm2_pcrlist** in tpm2_tools of earlier versions) command to list all PCR values.
+You can run the `tpm2_pcrread` command (or the `tpm2_pcrlist` command in earlier versions of tpm2_tools) to list all PCR values.
 
-```shell
+```Shell
 # tpm2_pcrread
 sha1 :
   0  : fffdcae7cef57d93c5f64d1f9b7f1879275cff55
@@ -622,3 +892,20 @@ sha256 :
   22 : ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   23 : 0000000000000000000000000000000000000000000000000000000000000000
 ```
+
+## Service Application Best Practices
+
+### High-Density Many-Core Computing
+
+#### Overview
+
+As the number of cores in a single server continues to increase, the universal scalability law (USL) shows that serial and synchronization overheads prevent linear performance gains. This limitation remains a key challenge in the industry. In practical many-core containerized environments, the serial access and synchronization overheads stem from contention over shared hardware and software resources.
+
+1. Software shared resources: Contention over shared management data structures (such as inode, syslog, and lock).
+2. Hardware shared resources: Contention over shared hardware components including memory, caches, buses, and hardware devices.
+
+Resource isolation is a practical method to reduce hardware and software interference on many-core servers. However, full virtualization can introduce overhead. Therefore, lightweight virtualization technologies are used to reduce the impact of virtualization overhead on container services.
+
+#### Lightweight Virtualization Practices
+
+In high-density many-core scenarios, the Kunpeng-V key technologies provide a lightweight and low-overhead virtualization isolation solution. This is achieved through technologies such as transparent transmission of hardware topology, interrupt passthrough, NUMA affinity, vCPU core binding, SR-IOV passthrough, NUMA exposure for passthrough devices, HugePage memory, and memory bandwidth monitoring. By improving the isolation between VMs, the Redis container deployment density can be increased by 100%. For details about the operations of the preceding key technologies, see [Performance Best Practices](#performance-best-practices).
