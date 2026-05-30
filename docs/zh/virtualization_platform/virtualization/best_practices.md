@@ -491,6 +491,42 @@ echo N > /sys/module/kvm/parameters/force_wfi_trap
 
 创建虚拟机后使用vmtop查看对应虚拟机的WFI陷出是否有数据。
 
+### vtimer中断透传
+
+#### 概述
+
+当虚拟机对timer定时时延有极致要求时，可以通过开启vtimer中断透传功能，避免timer中断注入过程中的陷入/陷出操作，从而降低中断注入时延。该特性适用于鲲鹏920新型号及鲲鹏950处理器。
+
+>[!NOTE]说明
+>由于实现原因，vtimer直通时不提供active、pending状态。若虚拟机内部依赖timer的active、pending状态做特殊处理，可通过在libvirt配置开启vtimer status状态模拟，该特性需要Guest OS支持。
+
+#### 前提条件
+
+使用vtimer中断透传特性前，需在BIOS中配置开启GICv4.1或GICv4.2支持。
+
+#### 操作指导
+
+1. 开启vtimer直通功能
+
+    在主机侧内核启动参数中添加vtimer中断透传参数：
+
+    ```Shell
+    kvm-arm.vtimer_irqbypass=1
+    ```
+
+2. （可选）开启vtimer status状态模拟
+
+    若虚拟机内部依赖timer的active、pending状态，在虚拟机libvirt XML配置文件中添加如下配置：
+
+    ```Conf
+    <features>
+      <kvm-vtimer-status enabled='yes'/>
+    </features>
+    ```
+
+    >[!NOTE]说明
+    >该特性需要Guest OS支持。
+
 ### 网卡直通
 
 #### 概述
