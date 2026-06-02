@@ -491,6 +491,71 @@ echo N > /sys/module/kvm/parameters/force_wfi_trap
 
 创建虚拟机后使用vmtop查看对应虚拟机的WFI陷出是否有数据。
 
+### vtimer中断透传
+
+#### 概述
+
+当虚拟机对timer定时时延有极致要求时，可以通过开启vtimer中断透传功能，避免timer中断注入过程中的陷入/陷出操作，从而降低中断注入时延。该特性适用于鲲鹏920新型号及鲲鹏950处理器。
+
+>[!NOTE]说明
+>由于实现原因，vtimer直通时不提供active、pending状态。若虚拟机内部依赖timer的active、pending状态做特殊处理，可通过在libvirt配置开启vtimer status状态模拟，该特性需要Guest OS支持。
+
+#### 前提条件
+
+使用vtimer中断透传特性前，需在BIOS中配置开启GICv4.1或GICv4.2支持。
+
+#### 操作指导
+
+1. 开启vtimer直通功能
+
+    在主机侧内核启动参数中添加vtimer中断透传参数：
+
+    ```Shell
+    kvm-arm.vtimer_irqbypass=1
+    ```
+
+2. （可选）开启vtimer status状态模拟
+
+    若虚拟机内部依赖timer的active、pending状态，在虚拟机libvirt XML配置文件中添加如下配置：
+
+    ```Conf
+    <features>
+      <kvm-vtimer-status enabled='yes'/>
+    </features>
+    ```
+
+    >[!NOTE]说明
+    >该特性需要Guest OS支持。
+
+### 定时器中断提前注入
+
+#### 概述
+
+定时器中断提前注入是一种Guest与Host协同的半虚拟化（PV）特性。在虚拟化场景下，timer中断从Host注入到Guest需要经历一定的虚拟化处理流程，带来额外的注入开销，导致Guest感知到的timer中断时延大于物理机场景。定时器中断提前注入特性允许Guest配置中断提前量，以抵消虚拟化注入开销，从而降低Guest收到timer中断的时延。Guest通过SMCCC调用发现并使能该特性，Host侧通过模块参数控制提前注入的时间量。
+
+>[!NOTE]说明
+>该特性为Guest与Host协同特性，需要Guest OS与Host OS均支持该特性才能生效。
+
+#### 操作指导
+
+1. 在主机侧配置提前注入时间
+
+    通过模块参数`timer_early_inject_ns`控制timer中断提前注入的时间量（单位为纳秒），该参数对所有虚拟机生效。使用root用户执行如下命令：
+
+    ```Shell
+    # echo value > /sys/module/kvm/parameters/timer_early_inject_ns
+    ```
+
+    其中`value`为提前注入的时间量，单位为纳秒。例如设置提前注入时间为100ns：
+
+    ```Shell
+    # echo 100 > /sys/module/kvm/parameters/timer_early_inject_ns
+    ```
+
+2. 在Guest侧使能特性
+
+    Guest OS通过SMCCC调用发现并使能定时器中断提前注入特性，无需额外配置。
+
 ### 网卡直通
 
 #### 概述
