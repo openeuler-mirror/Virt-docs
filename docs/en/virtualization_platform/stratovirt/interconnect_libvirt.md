@@ -177,7 +177,7 @@ Set the disk path to **/home/openEuler-21.09-stratovirt.img**, iothread quantity
 
 #### Configuration Example
 
-Before configuring the network, [configure the Linux bridge](../Virtualization/environment_preparation.md#preparing-the-vm-network) first. Set the MAC address to **de:ad:be:ef:00:01** and network bridge to **br0**. Use the virtio-net device, and mount it to the PCI bus whose bus ID is 2, slot ID is 0, and function ID is 0. The following is the example:
+Before configuring the network, [configure the Linux bridge](../virtualization/environment_preparation.md#preparing-the-vm-network) first. Set the MAC address to **de:ad:be:ef:00:01** and network bridge to **br0**. Use the virtio-net device, and mount it to the PCI bus whose bus ID is 2, slot ID is 0, and function ID is 0. The following is the example:
 
 ```xml
 <domain type='kvm'>
