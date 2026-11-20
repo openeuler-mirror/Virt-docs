@@ -169,21 +169,21 @@ Lightweight VM:
 
 ```shell
 {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
-{"execute": "device_add", "arguments": {"id": "drive-0", "driver": "virtio-blk-mmio", "addr": "0x1"}}
+{"execute": "device_add", "arguments": {"id": "blk-0", "driver": "virtio-blk-device", "drive": "drive-0", "addr": "0x1"}}
 ```
 
 Standard VM:
 
 ```shell
 {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
-{"execute":"device_add", "arguments":{"id":"drive-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
+{"execute":"device_add", "arguments":{"id":"blk-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
 ```
 
 **Parameters:**
 
-- For a lightweight VM, the value of **node-name** in **blockdev-add** must be the same as that of **id** in **device_add**. For example, the values of **node-name** and **id** are both **drive-0** as shown above.
+- The value of **drive** in **device_add** must be the same as that of **node-name** in **blockdev-add**. The value of **id** is only the unique identifier of the frontend device, which is used by **device_del** to hot remove the device, and can be different from **node-name**.
 
-- For a standard VM, the value of **drive** must be the same as that of **node-name** in **blockdev-add**.
+- For a lightweight VM, the value of **driver** in **device_add** must be **virtio-blk-device**.
 
 - **/path/to/block** is the image path of the hot added disks. It cannot be the path of the disk image that boots the rootfs.
 
@@ -200,7 +200,7 @@ Lightweight VM:
 ```shell
 <- {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
 -> {"return": {}}
-<- {"execute": "device_add", "arguments": {"id": "drive-0", "driver": "virtio-blk-mmio", "addr": "0x1"}}
+<- {"execute": "device_add", "arguments": {"id": "blk-0", "driver": "virtio-blk-device", "drive": "drive-0", "addr": "0x1"}}
 -> {"return": {}}
 ```
 
@@ -209,7 +209,7 @@ Standard VM:
 ```shell
 <- {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"drive-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
+<- {"execute":"device_add", "arguments":{"id":"blk-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
 -> {"return": {}}
 ```
 
@@ -220,19 +220,19 @@ Standard VM:
 Lightweight VM:
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"drive-0"}}
+{"execute": "device_del", "arguments": {"id":"blk-0"}}
 ```
 
 Standard VM:
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"drive-0"}}
+{"execute": "device_del", "arguments": {"id":"blk-0"}}
 {"execute": "blockdev-del", "arguments": {"node-name": "drive-0"}}
 ```
 
 **Parameters:**
 
-**id** indicates the ID of the disk to be hot removed.
+**id** indicates the device ID of the disk to be hot removed, that is, the **id** specified in **device_add**, for example, **blk-0**.
 
 - **node-name** indicates the backend name of the disk.
 
@@ -241,17 +241,17 @@ Standard VM:
 Lightweight VM:
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id": "drive-0"}}
--> {"event":"DEVICE_DELETED","data":{"device":"drive-0","path":"drive-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
+<- {"execute": "device_del", "arguments": {"id": "blk-0"}}
+-> {"event":"DEVICE_DELETED","data":{"device":"blk-0","path":"blk-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
 -> {"return": {}}
 ```
 
 Standard VM:
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id":"drive-0"}}
+<- {"execute": "device_del", "arguments": {"id":"blk-0"}}
 -> {"return": {}}
--> {"event":"DEVICE_DELETED","data":{"device":"drive-0","path":"drive-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
+-> {"event":"DEVICE_DELETED","data":{"device":"blk-0","path":"blk-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
 <- {"execute": "blockdev-del", "arguments": {"node-name": "drive-0"}}
 -> {"return": {}}
 ```
@@ -300,21 +300,21 @@ Lightweight VM:
 
 ```shell
 {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
-{"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-mmio", "addr":"0x0"}}
+{"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-device", "netdev":"net-0", "addr":"0x0"}}
 ```
 
 Standard VM:
 
 ```shell
 {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
-{"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
+{"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
 ```
 
 **Parameters:**
 
-- For a lightweight VM, **id** in **netdev_add** must be the same as that in **device_add**. **ifname** is the name of the backend tap device.
+- The value of **netdev** in **device_add** must be the same as that of **id** in **netdev_add**. The value of **id** is only the unique identifier of the frontend device, which is used by **device_del** to hot remove the device, and can be different from the **id** in **netdev_add**. **ifname** is the name of the backend tap device.
 
-- For a standard VM, the value of **netdev** must be the value of **id** in **netdev_add**.
+- For a lightweight VM, the value of **driver** in **device_add** must be **virtio-net-device**.
 
 - For a lightweight VM, the value of **addr**, starting from **0x0**, is mapped to an NIC on the VM. **0x0** is mapped to **eth0**, **0x1** is mapped to **eth1**. For a standard VM, the value of **addr** must be **0x0**.
 
@@ -329,7 +329,7 @@ Lightweight VM:
 ```shell
 <- {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-mmio", "addr":"0x0"}} 
+<- {"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-device", "netdev":"net-0", "addr":"0x0"}} 
 -> {"return": {}}
 ```
 
@@ -340,7 +340,7 @@ Standard VM:
 ```shell
 <- {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
+<- {"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
 -> {"return": {}}
 ```
 
@@ -351,19 +351,19 @@ Standard VM:
 Lightweight VM:
 
 ```shell
-{"execute": "device_del", "arguments": {"id": "net-0"}}
+{"execute": "device_del", "arguments": {"id": "nic-0"}}
 ```
 
 Standard VM:
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"net-0"}}
+{"execute": "device_del", "arguments": {"id":"nic-0"}}
 {"execute": "netdev_del", "arguments": {"id": "net-0"}}
 ```
 
 **Parameters:**
 
-**id**: NIC ID, for example, **net-0**.
+**id**: device ID of the NIC, that is, the **id** specified in **device_add**, for example, **nic-0**.
 
 - **id** in **netdev_del** indicates the backend name of the NIC.
 
@@ -372,17 +372,17 @@ Standard VM:
 Lightweight VM:
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id": "net-0"}}
--> {"event":"DEVICE_DELETED","data":{"device":"net-0","path":"net-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
+<- {"execute": "device_del", "arguments": {"id": "nic-0"}}
+-> {"event":"DEVICE_DELETED","data":{"device":"nic-0","path":"nic-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
 -> {"return": {}}
 ```
 
 Standard VM:
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id":"net-0"}}
+<- {"execute": "device_del", "arguments": {"id":"nic-0"}}
 -> {"return": {}}
--> {"event":"DEVICE_DELETED","data":{"device":"net-0","path":"net-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
+-> {"event":"DEVICE_DELETED","data":{"device":"nic-0","path":"nic-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
 <- {"execute": "netdev_del", "arguments": {"id": "net-0"}}
 -> {"return": {}}
 ```
