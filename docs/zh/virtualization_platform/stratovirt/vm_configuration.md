@@ -160,7 +160,7 @@ QoS（Quality of Service）是服务质量的意思。在云场景中，单主�
 
 #### iothread
 
-iothread配置细节见[iothread配置](#iothread配置)
+iothread配置细节见[iothread配置](#iothread)
 
 ### 网卡配置
 
@@ -170,7 +170,7 @@ iothread配置细节见[iothread配置](#iothread配置)
 - tap：指定 tap 设备。
 - ifname：host 上的 tap 设备名。
 - mac：设置虚拟机 mac 地址（可选配置）。
-- iothread：配置磁盘的 iothread 属性（可选配置）。网卡 iothread 配置详见 [iothread配置](#iothread配置) 。
+- iothread：配置磁盘的 iothread 属性（可选配置）。网卡 iothread 配置详见 [iothread配置](#iothread) 。
 
 #### 配置方式
 

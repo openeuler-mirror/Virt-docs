@@ -88,9 +88,9 @@ virsh <operate> <obj> <options>
 - _obj_：命令操作对象，如指定需要操作的虚拟机。
 - _options_：命令选项，该参数可选。
 
-虚拟机生命周期管理各命令如[表1](#table389518422611)所示。其中VMInstanse为虚拟机名称、虚拟机ID或者虚拟机UUID，XMLFile是虚拟机XML配置文件，DumpFile为转储文件，请根据实际情况修改。
+虚拟机生命周期管理各命令如[表2](#table389518422611)所示。其中VMInstanse为虚拟机名称、虚拟机ID或者虚拟机UUID，XMLFile是虚拟机XML配置文件，DumpFile为转储文件，请根据实际情况修改。
 
-**表 1*-  虚拟机生命周期管理命令
+**表 2*-  虚拟机生命周期管理命令
 
 <a name="table389518422611"></a>
 <table><thead align="left"><tr id="row11896124210613"><th class="cellrowborder" valign="top" width="31.669999999999998%" id="mcps1.2.3.1.1"><p id="p148961421461"><a name="p148961421461"></a><a name="p148961421461"></a>命令</p>
@@ -316,9 +316,9 @@ virsh edit命令通过编辑“domain”对应的XML配置文件，完成对虚�
 
 ### 查询虚拟机基本信息
 
-Libvirt组件提供了一组查询虚拟机状态信息的命令，包括虚拟机运行状态、设备信息或者调度属性等，使用方法请参见[表1](#table10582103963816)。
+Libvirt组件提供了一组查询虚拟机状态信息的命令，包括虚拟机运行状态、设备信息或者调度属性等，使用方法请参见[表3](#table10582103963816)。
 
-**表 1*-  查询虚拟机基本信息
+**表 3*-  查询虚拟机基本信息
 
 <a name="table10582103963816"></a>
 <table><thead align="left"><tr id="row1858320394388"><th class="cellrowborder" valign="top" width="16.41164116411641%" id="mcps1.2.4.1.1"><p id="p11583173983813"><a name="p11583173983813"></a><a name="p11583173983813"></a>查询的信息内容</p>
