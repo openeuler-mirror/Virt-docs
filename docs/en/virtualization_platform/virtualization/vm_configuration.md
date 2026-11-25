@@ -154,6 +154,7 @@ The XML configuration file uses the  **disk**  element to configure storage devi
 
 **Table  1**  Common attributes of the  **disk**  element
 
+<a name="table14200183410353"></a>
 <table>
  <tr>
   <td><b>Element</b></td>
@@ -175,6 +176,8 @@ The XML configuration file uses the  **disk**  element to configure storage devi
 </table>
 
 **Table  2**  Common subelements and attributes of the  **disk**  element
+
+<a id="table4866134925114"></a>
 
 | Subelement | Subelement Description                                       | Attribute Description                                        |
 | ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -237,7 +240,7 @@ The XML configuration file can be used to configure virtual network devices, inc
 
 In the XML configuration file, the element  **interface**  is used, and its attribute  **type**  indicates the mode of the vNIC. The options are  **ethernet**,  **bridge**, and  **vhostuser**. The following uses the vNIC in bridge mode as an example to describe its subelements and attributes.
 
-**Table  1**  Common subelements of a vNIC in bridge mode
+**Table 3**  Common subelements of a vNIC in bridge mode
 
 <table><thead align="left"><tr id="row5867349175120"><th class="cellrowborder" valign="top" width="13.3%" id="mcps1.2.4.1.1"><p id="p1532019194524"><a name="p1532019194524"></a><a name="p1532019194524"></a>Subelement</p>
 </th>
@@ -353,15 +356,16 @@ In the XML configuration of libvirt, each controller element \(**controller**\) 
 
 - Attribute  **type**: bus type, which is mandatory for the controller. The common values are  **pci**,  **usb**,  **scsi**,  **virtio-serial**,  **fdc**, and  **ccid**.
 - Attribute  **index**: bus number of the controller \(the number starts from 0\), which is mandatory for the controller. This attribute can be used in the  **address**  element.
-- Attribute  **model**: specific model of the controller, which is mandatory for the controller. The available values are related to the value of  **type**. For details about the mapping and description, see  [Table 1](#table191911761111).
+- Attribute  **model**: specific model of the controller, which is mandatory for the controller. The available values are related to the value of  **type**. For details about the mapping and description, see  [Table 4](#table191911761111).
 - Subelement  **address**: mount location of a device or controller on the bus network.
-    - Attribute  **type**: device address type. The common values are  **pci**,  **usb**, or  **drive**. The attribute varies according to the  **type**  of the  **address**. For details about the common  **type**  attribute value and the corresponding  **address**  attribute, see  [Table 2](#table1200165711314).
+    - Attribute  **type**: device address type. The common values are  **pci**,  **usb**, or  **drive**. The attribute varies according to the  **type**  of the  **address**. For details about the common  **type**  attribute value and the corresponding  **address**  attribute, see  [Table 5](#table1200165711314).
 
 - Subelement  **model**: name of a controller model.
     - Attribute  **name**: name of a controller model, which corresponds to the  **model**  attribute in the parent element controller.
 
-**Table  1**  Mapping between the common values of  **type**  and  **model**  for the controller.
+**Table  4**  Mapping between the common values of  **type**  and  **model**  for the controller.
 
+<a name="table191911761111"></a>
 <table><thead align="left"><tr id="row2208179119"><th class="cellrowborder" valign="top" width="15.690000000000001%" id="mcps1.2.4.1.1"><p id="p17201217141114"><a name="p17201217141114"></a><a name="p17201217141114"></a>Value of Type</p>
 </th>
 <th class="cellrowborder" valign="top" width="28.52%" id="mcps1.2.4.1.2"><p id="p1520817171119"><a name="p1520817171119"></a><a name="p1520817171119"></a>Value of Model</p>
@@ -416,8 +420,9 @@ In the XML configuration of libvirt, each controller element \(**controller**\) 
 </tbody>
 </table>
 
-**Table  2**  Attributes of the  **address**  element in different devices.
+**Table  5**  Attributes of the  **address**  element in different devices.
 
+<a name="table1200165711314"></a>
 <table><thead align="left"><tr id="row202004570319"><th class="cellrowborder" valign="top" width="15.370000000000001%" id="mcps1.2.4.1.1"><p id="p172015573318"><a name="p172015573318"></a><a name="p172015573318"></a>Value of Type</p>
 </th>
 <th class="cellrowborder" valign="top" width="23.52%" id="mcps1.2.4.1.2"><p id="p17202111511010"><a name="p17202111511010"></a><a name="p17202111511010"></a>Description</p>

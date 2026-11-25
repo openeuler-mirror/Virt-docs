@@ -32,6 +32,7 @@ In libvirt, a created VM instance is called a  **domain**, which describes the c
 
 **Table  1**  Domain ID description
 
+<a name="table84397266483"></a>
 <table><thead align="left"><tr id="row194391726114819"><th class="cellrowborder" valign="top" width="24.57%" id="mcps1.2.3.1.1"><p id="p1417373404815"><a name="p1417373404815"></a><a name="p1417373404815"></a>ID</p>
 </th>
 <th class="cellrowborder" valign="top" width="75.42999999999999%" id="mcps1.2.3.1.2"><p id="p12173123414810"><a name="p12173123414810"></a><a name="p12173123414810"></a>Description</p>
@@ -91,6 +92,7 @@ The parameters are described as follows:
 
 **Table  2**  VM Lifecycle Management Commands
 
+<a name="table389518422611"></a>
 <table><thead align="left"><tr id="row11896124210613"><th class="cellrowborder" valign="top" width="31.669999999999998%" id="mcps1.2.3.1.1"><p id="p148961421461"><a name="p148961421461"></a><a name="p148961421461"></a>Command</p>
 </th>
 <th class="cellrowborder" valign="top" width="68.33%" id="mcps1.2.3.1.2"><p id="p789618424610"><a name="p789618424610"></a><a name="p789618424610"></a>Description</p>
@@ -318,6 +320,7 @@ Libvirt component provides a group of commands for querying the VM status, inclu
 
 **Table  3**  Querying basic VM information
 
+<a name="table10582103963816"></a>
 <table><thead align="left"><tr id="row1858320394388"><th class="cellrowborder" valign="top" width="16.41164116411641%" id="mcps1.2.4.1.1"><p id="p11583173983813"><a name="p11583173983813"></a><a name="p11583173983813"></a>Information to be queried</p>
 </th>
 <th class="cellrowborder" valign="top" width="37.72377237723772%" id="mcps1.2.4.1.2"><p id="p7583539103816"><a name="p7583539103816"></a><a name="p7583539103816"></a>Command line</p>
