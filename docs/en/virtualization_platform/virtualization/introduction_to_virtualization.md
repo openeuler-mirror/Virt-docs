@@ -23,7 +23,7 @@ Currently, mainstream virtualization technologies are classified into two types 
 
 Kernel-based Virtual Machine \(KVM\) is a kernel module of Linux. It makes Linux a hypervisor.  [Figure 2](#fig310953013541)  shows the KVM architecture. KVM does not simulate any hardware device. It is used to enable virtualization capabilities provided by the hardware, such as Intel VT-x, AMD-V, ARM virtualization extensions. The user-mode QEMU simulates the mainboard, memory, and I/O devices. The user-mode QEMU works with the KVM module to simulate VM hardware. The guest OS runs on the hardware simulated by the QEMU and KVM.
 
-**Figure  2**  KVM architecture
+**Figure  2**  KVM architecture<a name="fig310953013541"></a>  
 ![](./figures/kvm-architecture.png)
 
 ## Virtualization Components
