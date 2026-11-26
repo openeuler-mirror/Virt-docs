@@ -169,21 +169,21 @@ StratoVirt支持在虚拟机运行过程中调整磁盘数量，即在不中断�
 
 ```shell
 {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
-{"execute": "device_add", "arguments": {"id": "drive-0", "driver": "virtio-blk-mmio", "addr": "0x1"}}
+{"execute": "device_add", "arguments": {"id": "blk-0", "driver": "virtio-blk-device", "drive": "drive-0", "addr": "0x1"}}
 ```
 
 标准机型：
 
 ```shell
 {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
-{"execute":"device_add", "arguments":{"id":"drive-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
+{"execute":"device_add", "arguments":{"id":"blk-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
 ```
 
 **参数**
 
-- 对于轻量机型，blockdev-add 中的 node-name 要和 device_add 中的 id 一致，如上都是 drive-0。
+- device_add 中的 drive 参数必须和 blockdev-add 中的 node-name 一致。id 仅是前端设备的唯一标识，用于 device_del 热拔设备，可以和 node-name 不同。
 
-- 对于标准机型 drive 参数需要和 blockdev-add 中的 node-name 一致。
+- 对于轻量机型，device_add 中的 driver 参数仅支持 virtio-blk-device。
 
 - /path/to/block 是被热插磁盘的镜像路径，不能是启动 rootfs 的磁盘镜像。
 
@@ -200,7 +200,7 @@ StratoVirt支持在虚拟机运行过程中调整磁盘数量，即在不中断�
 ```shell
 <- {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
 -> {"return": {}}
-<- {"execute": "device_add", "arguments": {"id": "drive-0", "driver": "virtio-blk-mmio", "addr": "0x1"}}
+<- {"execute": "device_add", "arguments": {"id": "blk-0", "driver": "virtio-blk-device", "drive": "drive-0", "addr": "0x1"}}
 -> {"return": {}}
 ```
 
@@ -209,7 +209,7 @@ StratoVirt支持在虚拟机运行过程中调整磁盘数量，即在不中断�
 ```shell
 <- {"execute": "blockdev-add", "arguments": {"node-name": "drive-0", "file": {"driver": "file", "filename": "/path/to/block"}, "cache": {"direct": true}, "read-only": false}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"drive-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
+<- {"execute":"device_add", "arguments":{"id":"blk-0", "driver":"virtio-blk-pci", "drive": "drive-0", "addr":"0x0", "bus": "pcie.1"}}
 -> {"return": {}}
 ```
 
@@ -220,19 +220,19 @@ StratoVirt支持在虚拟机运行过程中调整磁盘数量，即在不中断�
 轻量机型：
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"drive-0"}}
+{"execute": "device_del", "arguments": {"id":"blk-0"}}
 ```
 
 标准机型：
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"drive-0"}}
+{"execute": "device_del", "arguments": {"id":"blk-0"}}
 {"execute": "blockdev-del", "arguments": {"node-name": "drive-0"}}
 ```
 
 **参数：**
 
-- id 为热拔磁盘的 ID 号。
+- id 为热拔磁盘的设备 ID，即 device_add 中指定的 id，例如 blk-0。
 - node-name 为磁盘后端名称。
 
 **示例**
@@ -240,17 +240,17 @@ StratoVirt支持在虚拟机运行过程中调整磁盘数量，即在不中断�
 轻量机型：
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id": "drive-0"}}
--> {"event":"DEVICE_DELETED","data":{"device":"drive-0","path":"drive-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
+<- {"execute": "device_del", "arguments": {"id": "blk-0"}}
+-> {"event":"DEVICE_DELETED","data":{"device":"blk-0","path":"blk-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
 -> {"return": {}}
 ```
 
 标准机型：
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id":"drive-0"}}
+<- {"execute": "device_del", "arguments": {"id":"blk-0"}}
 -> {"return": {}}
--> {"event":"DEVICE_DELETED","data":{"device":"drive-0","path":"drive-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
+-> {"event":"DEVICE_DELETED","data":{"device":"blk-0","path":"blk-0"},"timestamp":{"seconds":1598513162,"microseconds":367129}}
 <- {"execute": "blockdev-del", "arguments": {"node-name": "drive-0"}}
 -> {"return": {}}
 ```
@@ -299,21 +299,21 @@ StratoVirt支持在虚拟机运行过程中调整网卡数量，即在不中断�
 
 ```shell
 {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
-{"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-mmio", "addr":"0x0"}}
+{"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-device", "netdev":"net-0", "addr":"0x0"}}
 ```
 
 标准机型：
 
 ```shell
 {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
-{"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
+{"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
 ```
 
 **参数**
 
-- 对于轻量机型，netdev_add 中的 id 应该和 device_add 中的 id 一致，ifname 是后端的 tap 设备名称。
+- device_add 中的 netdev 参数必须和 netdev_add 中的 id 一致。id 仅是前端设备的唯一标识，用于 device_del 热拔设备，可以和 netdev_add 中的 id 不同。ifname 是后端的 tap 设备名称。
 
-- 对于标准机型，netdev 参数需要和 netdev_add 中的 id 一致。
+- 对于轻量机型，device_add 中的 driver 参数仅支持 virtio-net-device。
 
 - 对于轻量机型，addr 参数从 0x0 开始与虚拟机的 eth0 映射，0x1 和虚拟机的 eth1 映射。对于标准机型，目前 addr 参数需要指定为 0x0。
 
@@ -328,7 +328,7 @@ StratoVirt支持在虚拟机运行过程中调整网卡数量，即在不中断�
 ```shell
 <- {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-mmio", "addr":"0x0"}} 
+<- {"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-device", "netdev":"net-0", "addr":"0x0"}} 
 -> {"return": {}}
 ```
 
@@ -339,7 +339,7 @@ StratoVirt支持在虚拟机运行过程中调整网卡数量，即在不中断�
 ```shell
 <- {"execute":"netdev_add", "arguments":{"id":"net-0", "ifname":"tap0"}}
 -> {"return": {}}
-<- {"execute":"device_add", "arguments":{"id":"net-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
+<- {"execute":"device_add", "arguments":{"id":"nic-0", "driver":"virtio-net-pci", "addr":"0x0", "netdev": "net-0", "bus": "pcie.1"}}
 -> {"return": {}}
 ```
 
@@ -350,19 +350,19 @@ StratoVirt支持在虚拟机运行过程中调整网卡数量，即在不中断�
 轻量机型：
 
 ```shell
-{"execute": "device_del", "arguments": {"id": "net-0"}}
+{"execute": "device_del", "arguments": {"id": "nic-0"}}
 ```
 
 标准机型：
 
 ```shell
-{"execute": "device_del", "arguments": {"id":"net-0"}}
+{"execute": "device_del", "arguments": {"id":"nic-0"}}
 {"execute": "netdev_del", "arguments": {"id": "net-0"}}
 ```
 
 **参数**
 
-- id：网卡的ID号，例如 net-0。
+- id：网卡的设备 ID，即 device_add 中指定的 id，例如 nic-0。
 
 - netdev_del 中的 id 是网卡后端的名称。
 
@@ -371,17 +371,17 @@ StratoVirt支持在虚拟机运行过程中调整网卡数量，即在不中断�
 轻量机型：
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id": "net-0"}}
--> {"event":"DEVICE_DELETED","data":{"device":"net-0","path":"net-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
+<- {"execute": "device_del", "arguments": {"id": "nic-0"}}
+-> {"event":"DEVICE_DELETED","data":{"device":"nic-0","path":"nic-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
 -> {"return": {}}
 ```
 
 标准机型：
 
 ```shell
-<- {"execute": "device_del", "arguments": {"id":"net-0"}}
+<- {"execute": "device_del", "arguments": {"id":"nic-0"}}
 -> {"return": {}}
--> {"event":"DEVICE_DELETED","data":{"device":"net-0","path":"net-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
+-> {"event":"DEVICE_DELETED","data":{"device":"nic-0","path":"nic-0"},"timestamp":{"seconds":1598513339,"microseconds":97310}}
 <- {"execute": "netdev_del", "arguments": {"id": "net-0"}}
 -> {"return": {}}
 ```
